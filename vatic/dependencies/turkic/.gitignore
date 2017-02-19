@@ -1,0 +1,5 @@
+*.pyc
+build
+dist
+MANIFEST
+turkic.egg-info

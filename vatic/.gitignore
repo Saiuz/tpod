@@ -1,0 +1,12 @@
+log.txt
+*.pyc
+config.py
+tmp
+backups
+homographies
+vatic.tar.gz
+.DS_Store
+*.swp
+*.swo
+videos
+video_frames
