@@ -1,5 +1,4 @@
-import turkic.database
-import turkic.models
+from db_util import Base
 from sqlalchemy import Column, Integer, Float, String, Boolean, Text
 from sqlalchemy import ForeignKey, Table, PickleType
 from sqlalchemy.orm import relationship, backref
@@ -15,11 +14,11 @@ import pdb
 
 logger = logging.getLogger("vatic.models")
 
-boxes_attributes = Table("boxes2attributes", turkic.database.Base.metadata,
+boxes_attributes = Table("boxes2attributes", Base.metadata,
     Column("box_id", Integer, ForeignKey("boxes.id")),
     Column("attribute_id", Integer, ForeignKey("attributes.id")))
 
-class Video(turkic.database.Base):
+class Video(Base):
     __tablename__   = "videos"
 
     id              = Column(Integer, primary_key = True)
@@ -99,7 +98,7 @@ class Video(turkic.database.Base):
                 nextseg = seg
         return prevseg, nextseg
 
-class Label(turkic.database.Base):
+class Label(Base):
     __tablename__ = "labels"
 
     id = Column(Integer, primary_key = True)
@@ -108,7 +107,7 @@ class Label(turkic.database.Base):
     video = relationship(Video, backref = backref("labels",
                                                   cascade = "all,delete"))
 
-class Attribute(turkic.database.Base):
+class Attribute(Base):
     __tablename__ = "attributes"
 
     id = Column(Integer, primary_key = True)
@@ -120,7 +119,7 @@ class Attribute(turkic.database.Base):
     def __str__(self):
         return self.text
 
-class Segment(turkic.database.Base):
+class Segment(Base):
     __tablename__ = "segments"
 
     id = Column(Integer, primary_key = True)
@@ -145,19 +144,25 @@ class Segment(turkic.database.Base):
             cost += job.cost
         return cost
 
-class Job(turkic.models.HIT):
+class Job(Base):
     __tablename__ = "jobs"
     __mapper_args__ = {"polymorphic_identity": "jobs"}
 
-    id             = Column(Integer, ForeignKey(turkic.models.HIT.id),
-                            primary_key = True)
+    id             = Column(Integer,  primary_key = True)
     segmentid      = Column(Integer, ForeignKey(Segment.id))
     segment        = relationship(Segment,
                                   backref = backref("jobs",
                                                     cascade = "all,delete"))
-    #defaultlabelid = Column(Integer, ForeignKey(Label.id))
-    #defaultlabel = relationship(Label)
     istraining     = Column(Boolean, default = False)
+    hitid         = Column(String(30))
+    assignmentid  = Column(String(30))
+    ready         = Column(Boolean, default = True, index = True)
+    published     = Column(Boolean, default = False, index = True)
+    completed     = Column(Boolean, default = False, index = True)
+    compensated   = Column(Boolean, default = False, index = True)
+    accepted      = Column(Boolean, default = False, index = True)
+    validated     = Column(Boolean, default = False, index = True)
+    useful        = Column(Boolean, default = True)
 
     ## TODO get page
     def getpage(self):
@@ -196,6 +201,9 @@ class Job(turkic.models.HIT):
                                "limit in config.py".format(self.id))
         return True
 
+    def offlineurl(self, localhost):
+        return "{0}{1}&hitId=offline".format(localhost, self.getpage())
+
     @property
     def trainingjob(self):
         return self.segment.video.trainwith.segments[0].jobs[0]
@@ -213,7 +221,7 @@ class Job(turkic.models.HIT):
     def __iter__(self):
         return self.paths
 
-class Path(turkic.database.Base):
+class Path(Base):
     __tablename__ = "paths"
     
     id = Column(Integer, primary_key = True)
@@ -288,7 +296,7 @@ class Path(turkic.database.Base):
     def __repr__(self):
         return "<Path {0}>".format(self.id)
 
-class AttributeAnnotation(turkic.database.Base):
+class AttributeAnnotation(Base):
     __tablename__ = "attribute_annotations"
 
     id = Column(Integer, primary_key = True)
@@ -310,7 +318,7 @@ class AttributeAnnotation(turkic.database.Base):
                                                            self.frame,
                                                            self.value)
 
-class Box(turkic.database.Base):
+class Box(Base):
     __tablename__ = "boxes"
 
     id = Column(Integer, primary_key = True)
@@ -343,40 +351,3 @@ class Box(turkic.database.Base):
 #        print 'frame id: {}, generated: {}'.format(vb.frame, vb.generated)
         return vb
 
-
-class PerObjectBonus(turkic.models.BonusSchedule):
-    __tablename__ = "per_object_bonuses"
-    __mapper_args__ = {"polymorphic_identity": "per_object_bonuses"}
-
-    id = Column(Integer, ForeignKey(turkic.models.BonusSchedule.id), 
-        primary_key = True)
-    amount = Column(Float, default = 0.0, nullable = False)
-
-    def description(self):
-        return (self.amount, "per object")
-
-    def award(self, hit):
-        paths = len(hit.paths)
-        amount = paths * self.amount
-        if amount > 0:
-            hit.awardbonus(amount, "For {0} objects".format(paths))
-            logger.debug("Awarded per-object bonus of ${0:.2f} for {1} paths"
-                            .format(amount, paths))
-        else:
-            logger.debug("No award for per-object bonus because 0 paths")
-
-class CompletionBonus(turkic.models.BonusSchedule):
-    __tablename__ = "completion_bonuses"
-    __mapper_args__ = {"polymorphic_identity": "completion_bonuses"}
-
-    id = Column(Integer, ForeignKey(turkic.models.BonusSchedule.id),
-        primary_key = True)
-    amount = Column(Float, default = 0.0, nullable = False)
-
-    def description(self):
-        return (self.amount, "if complete")
-
-    def award(self, hit):
-        hit.awardbonus(self.amount, "For complete annotation.")
-        logger.debug("Awarded completion bonus of ${0:.2f}"
-                        .format(self.amount))
