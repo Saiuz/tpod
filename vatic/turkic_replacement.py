@@ -1,7 +1,8 @@
 import cv2
-import os
-from models import *
+
 from db_util import session
+from models import *
+
 
 def extract(path_video, path_output):
     if not os.path.isdir(path_output):

@@ -2,7 +2,6 @@ import os
 import sys
 import math
 import argparse
-import config
 import shutil
 from turkic.cli import handler, importparser, Command, LoadCommand
 from turkic.database import session
@@ -26,6 +25,7 @@ import vision.pascal
 import itertools
 from xml.etree import ElementTree
 import pdb
+import config
 
 ### TODO API extract
 @handler("Decompresses an entire video into frames")

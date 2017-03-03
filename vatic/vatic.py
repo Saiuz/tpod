@@ -7,7 +7,6 @@ import cv2
 import tempfile
 import tracking
 import trackutils
-from turkic.server import handler, application
 from turkic.database import session
 from vision.track.interpolation import LinearFill
 import cStringIO

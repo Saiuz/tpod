@@ -2,13 +2,13 @@ import os
 import sys
 import math
 import argparse
-import config
 import shutil
 from turkic.cli import handler, importparser, Command, LoadCommand
 from turkic.database import session
 from models import *
 from collections import defaultdict
 import pdb
+import config
 
 def get_video_labels_from_vatic(video_name):
     if session.query(Video).filter(Video.slug == video_name).count():
@@ -36,7 +36,7 @@ def getvideosinfo(vnames):
             }
             for job in segment.jobs:
                 newsegment["jobs"].append({
-                    "url": job.offlineurl(config.localhost+config.VATIC_URL_PREFIX),
+                    "url": job.offlineurl(config.localhost + config.VATIC_URL_PREFIX),
                     "numobjects": len(job.paths),
                     "numdone": len([path for path in job.paths if path.done]),
                 })

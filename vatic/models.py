@@ -1,16 +1,16 @@
-from db_util import Base
-from sqlalchemy import Column, Integer, Float, String, Boolean, Text
-from sqlalchemy import ForeignKey, Table, PickleType
-from sqlalchemy.orm import relationship, backref
-from PIL import Image
+import logging
+import os
+
 import numpy as np
 import vision
+from PIL import Image
+from sqlalchemy import Column, Integer, Float, String, Boolean
+from sqlalchemy import ForeignKey, Table, PickleType
+from sqlalchemy.orm import relationship, backref
 from vision.track.interpolation import LinearFill
-import random
-import logging
+
+from db_util import Base
 import config
-import os
-import pdb
 
 logger = logging.getLogger("vatic.models")
 
