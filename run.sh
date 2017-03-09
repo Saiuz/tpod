@@ -1,4 +1,4 @@
-export FLASK_APP=view.py
+export FLASK_APP=app.py
 
 flask run --host=128.2.209.246
 

@@ -8,10 +8,16 @@ import config
 from flask_superadmin import Admin, model, AdminIndexView
 from flask_superadmin.contrib import sqlamodel
 from flask import jsonify
+from video_blueprint import video_page
+from label_blueprint import label_page
+from classifier_blueprint import classifier_page
 
 
 app = Flask(__name__, static_url_path='/static')
 app.register_blueprint(vatic_page)
+app.register_blueprint(video_page)
+app.register_blueprint(label_page)
+app.register_blueprint(classifier_page)
 
 # initialize login
 login_manager = LoginManager()
@@ -29,21 +35,18 @@ def load_user(id):
 # Create customized model view class
 class MyModelView(sqlamodel.ModelView):
     def is_accessible(self):
-        print current_user.is_authenticated
         return current_user.is_authenticated
 
 
 # Create customized index view class
 class MyAdminIndexView(AdminIndexView):
     def is_accessible(self):
-        print current_user.is_authenticated
         return current_user.is_authenticated
 
 # initialize super admin
 admin = Admin(app, "TPOD Models", index_view=MyAdminIndexView())
-# admin.add_view(MyModelView(User, session))
+admin.add_view(MyModelView(User, session))
 
-admin.register(User, session=session)
 admin.register(Video, session=session)
 admin.register(Classifier, session=session)
 
@@ -97,59 +100,6 @@ def logout():
     logout_user()
     return Response('<p>Logged out</p>')
 
-
-# APIs for managing labels
-
-@app.route("/label/delete", methods=["POST"])
-@login_required
-def delete_label():
-    return Response('<p>Delete label</p>')
-
-
-@app.route("/label/add", methods=["POST"])
-@login_required
-def add_label():
-    return Response('<p>Add label</p>')
-
-
-# APIs for managing videos
-
-@app.route("/video/list", methods=["GET"])
-@login_required
-def list_video():
-    return Response('<p>List video</p>')
-
-
-@app.route("/video/delete", methods=["POST"])
-@login_required
-def delete_video():
-    return Response('<p>Delete video</p>')
-
-
-@app.route("/video/upload", methods=["POST"])
-@login_required
-def upload_video():
-    return Response('<p>Add video</p>')
-
-
-# APIs for managing classifiers
-
-@app.route("/classifier/list", methods=["GET"])
-@login_required
-def list_classifier():
-    return Response('<p>List classifier</p>')
-
-
-@app.route("/classifier/delete", methods=["POST"])
-@login_required
-def delete_classifier():
-    return Response('<p>Delete classifier</p>')
-
-
-@app.route("/classifier/create", methods=["POST"])
-@login_required
-def create_classifier():
-    return Response('<p>Add classifier</p>')
 
 
 
