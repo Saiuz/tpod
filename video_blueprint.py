@@ -4,9 +4,15 @@ from flask import request, url_for, jsonify, Response
 import util
 import config
 import os
+import time
 
 video_page = Blueprint('video_page', __name__, url_prefix='/video', template_folder='templates',
                        static_url_path='/static', static_folder='static')
+
+@video_page.route("/index", methods=["GET"])
+@login_required
+def index():
+    return render_template('index_video.html')
 
 
 @video_page.route("/list", methods=["GET"])
@@ -32,10 +38,11 @@ def upload():
         # we are expected to save the uploaded file and return some infos about it:
         #                              vvvvvvvvv   this is the name for input type=file
         data_file = request.files['file']
-        print 'get data ' + str(data_file)
         file_name = data_file.filename
-        save_file(data_file, file_name)
-        file_size = util.get_file_size(config.UPLOAD_PATH + file_name)
+        file_path = save_file(data_file, file_name)
+        print file_path
+        print util.is_video_file(file_name)
+        file_size = util.get_file_size(file_path)
         # providing the thumbnail url is optional
         return jsonify(name=file_name,
                        size=file_size)
@@ -44,5 +51,8 @@ def upload():
 def save_file(data_file, file_name):
     if not os.path.exists(config.UPLOAD_PATH):
         os.makedirs(config.UPLOAD_PATH)
-    data_file.save(config.UPLOAD_PATH + file_name)
+    timestamp = str(long(time.time()))
+    path = config.UPLOAD_PATH + timestamp + '_' + file_name
+    data_file.save(path)
+    return path
 
