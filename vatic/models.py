@@ -33,10 +33,12 @@ class Video(Base):
     trainwithid     = Column(Integer, ForeignKey(id))
     trainwith       = relationship("Video", remote_side = id)
     isfortraining   = Column(Boolean, default = False)
-    trainvalidator  = Column(PickleType, nullable = True, default = None)
     blowradius      = Column(Integer, default = 5)
     homographylocation  = Column(String(250), nullable = True, default = None)
     pointmode       = Column(Boolean, default = False)
+
+    owner_id = Column(Integer, ForeignKey("user.id"))
+    classifier_id = Column(Integer, ForeignKey("classifier.id"))
 
     def __getitem__(self, frame):
         path = Video.getframepath(frame, self.location)
@@ -207,10 +209,6 @@ class Job(Base):
     @property
     def trainingjob(self):
         return self.segment.video.trainwith.segments[0].jobs[0]
-
-    @property
-    def validator(self):
-        return self.segment.video.trainvalidator
 
     @property
     def cost(self): 

@@ -284,12 +284,6 @@ class load(LoadCommand):
                       homographylocation = homographydir,
                       pointmode = args.pointmode)
 
-        if args.for_training:
-            video.trainvalidator = qa.tolerable(args.for_training_overlap,
-                                                args.for_training_tolerance,
-                                                args.for_training_mistakes)
-            print "Training validator is {0}".format(video.trainvalidator)
-
         session.add(video)
 
         print "Binding labels and attributes..."

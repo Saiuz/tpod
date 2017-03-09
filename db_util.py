@@ -30,7 +30,8 @@ else:
         """
         Installs the database, but does not drop existing tables.
         """
-        import models
+        from vatic.models import *
+        from tpod_models import *
 
         Base.metadata.create_all(engine)
 

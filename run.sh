@@ -1,5 +1,5 @@
 export FLASK_APP=view.py
 
-flask run --host=cloudlet015.elijah.cs.edu
+flask run --host=128.2.209.246
 
 unset FLASK_APP

@@ -10,6 +10,7 @@ from collections import defaultdict
 import pdb
 import config
 
+
 def get_video_labels_from_vatic(video_name):
     if session.query(Video).filter(Video.slug == video_name).count():
         video=session.query(Video).filter(Video.slug == video_name).first()

@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Login</title>
+    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='css/nav.css') }}">
+    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='css/login.css') }}">
+    <script src="{{ url_for('static', filename='js/jquery-3.1.0.min.js') }}" ></script>
+    <script src="{{ url_for('static', filename='js/login.js') }}" ></script>
+    <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}" ></script>
+</head>
+
+<body>
+
+<div class="pos-f-t">
+    <div class="navbar navbar-light bg-faded">
+        <ul class="nav navbar-nav">
+            {% if session.logged_in %}
+                <li class="nav-item active" class="tab">
+                    <div class="nav-tab-container">
+                        <div id="nav-icon-profile">
+                        </div>
+                        <a class="nav-link" href="../profile">Home</a>
+                    </div>
+                </li>
+            {% endif %}
+
+        </ul>
+
+        <div id="logo">
+        </div>
+
+    </div>
+</div>
+
+<div class="content-container">
+        <div id="login-container">
+            <div id="login-header">
+                <div id="login-tab-login">
+                    <p class="login-tab-text"> Login</p>
+                </div>
+                <div id="login-tab-signup">
+                    <p class="login-tab-text"> Signup</p>
+                </div>
+            </div>
+            <form class="login-form" active action="login" method="post">
+                <div class="form-group">
+                    <label for="UserName">User Name</label>
+                    <input type="username" class="form-control login-form-username" name="username"
+                           placeholder="Enter your username">
+                </div>
+                <div class="form-group">
+                    <label for="Password">Password</label>
+                    <input type="password" class="form-control login-form-password" name="password"
+                           placeholder="Enter the password">
+                </div>
+                <button class="btn btn-primary login-form-confirm">Confirm</button>
+                <a class="btn btn-primary signup-form-reset-password" href="../../resetpassword">Forgot Password</a>
+            </form>
+            <form class="signup-form" action="signup" method="post" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="UserName">User Name</label>
+                    <input type="username" class="form-control signup-form-username" name="username"
+                           placeholder="Enter your username">
+                </div>
+
+                <div class="form-group">
+                    <label for="Password">Password</label>
+                    <input type="password" class="form-control signup-form-password" name="password"
+                           placeholder="Enter the password">
+                </div>
+                <div class="form-group">
+                    <label for="Password">Confirm Your Password</label>
+                    <input type="password" class="form-control signup-form-password-confirm" name="confirm_password"
+                           placeholder="Enter the password">
+                </div>
+                <button class="btn btn-primary signup-form-confirm">Confirm</button>
+            </form>
+        </div>
+</div>
+
+
+</body>
+</html>

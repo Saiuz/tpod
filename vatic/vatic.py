@@ -382,11 +382,6 @@ def public_files(path):
         return send_from_directory(public_dir,path)
     return "not a static file"
 
-@vatic_page.route('/')
-def test():
-    return str({
-        'haha': str(getallvideos())
-    })
 
 handlers["getallvideos"] = getallvideos
 
