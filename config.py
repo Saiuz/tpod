@@ -5,6 +5,7 @@ database    = "mysql://vatic:vatic@localhost/vatic" # server://user:pass@localho
 geolocation = "" # api key for ipinfodb.com
 maxobjects = 25
 VATIC_URL_PREFIX = '/vatic'
+UPLOAD_PATH = 'upload/'
 # probably no need to mess below this line
 
 import multiprocessing

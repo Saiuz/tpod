@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}File Uploader{% endblock %}
+
+{% block page_content %}
+<div class="container">
+    <blockquote>
+        <p>Welcome to Object Detectior Building Tool</p>
+    </blockquote>
+    <br>
+    <input id="fileupload" type="file" name="file" data-url="upload" multiple>
+
+    <div id="upload">
+    </div>
+    <div id="progress">
+        <div class="bar" style="width: 0%;"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+<script src="static/js/vendor/jquery.ui.widget.js"></script>
+<script src="static/js/jquery.iframe-transport.js"></script>
+<script src="static/js/jquery.fileupload.js"></script>
+<script>
+$(function () {
+    $('#fileupload').fileupload({
+        dataType: 'json',
+        done: function (e, data) {
+            $.each(data.result.files, function (index, file) {
+                $('<p/>').text(file.name).appendTo(document.body);
+            });
+        }
+    });
+});
+$('#fileupload').fileupload({
+    /* ... */
+    progressall: function (e, data) {
+        var progress = parseInt(data.loaded / data.total * 100, 10);
+        $('#progress .bar').css(
+            'width',
+            progress + '%'
+        );
+    }
+});
+$(function () {
+    $('#fileupload').fileupload({
+        dataType: 'json',
+        add: function (e, data) {
+            data.context = $('<button/>').text('Upload')
+                .appendTo($('#upload'))
+                .click(function () {
+                    data.context = $('<p/>').text('Uploading...').replaceAll($(this));
+                    data.submit();
+                });
+        },
+        done: function (e, data) {
+            data.context.text('Upload finished.');
+        }
+    });
+});
+</script>
+<![endif]-->
+{% endblock %}
+
+

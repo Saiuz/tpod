@@ -11,13 +11,17 @@ from flask import jsonify
 from video_blueprint import video_page
 from label_blueprint import label_page
 from classifier_blueprint import classifier_page
+from flask_bootstrap import Bootstrap
 
 
-app = Flask(__name__, static_url_path='/static')
+app = Flask(__name__, static_url_path='/static', template_folder='/templates')
 app.register_blueprint(vatic_page)
 app.register_blueprint(video_page)
 app.register_blueprint(label_page)
 app.register_blueprint(classifier_page)
+
+# bootstrap
+Bootstrap(app)
 
 # initialize login
 login_manager = LoginManager()
@@ -67,7 +71,6 @@ def login():
         form = LoginForm(request.form)
         if form.validate():
             user = form.user
-            print user
             print "login success "
             login_user(user)
             return jsonify(ret)
