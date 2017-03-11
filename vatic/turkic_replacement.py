@@ -14,7 +14,6 @@ def extract(path_video, path_output):
     success, image = cap.read()
     while success:
         img_path = Video.getframepath(count, path_output)
-        print img_path
         if not os.path.isdir(os.path.dirname(img_path)):
             os.makedirs(os.path.dirname(img_path))
         cv2.imwrite(img_path, image)

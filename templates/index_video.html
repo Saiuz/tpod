@@ -7,7 +7,11 @@
         <p>Welcome to Object Detectior Building Tool</p>
     </blockquote>
     <br>
-    <input id="fileupload" type="file" name="file" data-url="upload" multiple>
+    <form id="fileupload" action="upload" method="POST" enctype="multipart/form-data">
+        Input the name of your video (optional): <br>
+        <input type="text" name="video_name"><br>
+        <input type="file" name="file" data-url="upload" multiple>
+    </form>
 
     <div id="upload">
     </div>
@@ -25,7 +29,6 @@
 <script>
 $(function () {
     $('#fileupload').fileupload({
-        dataType: 'json',
         done: function (e, data) {
             $.each(data.result.files, function (index, file) {
                 $('<p/>').text(file.name).appendTo(document.body);
@@ -45,8 +48,6 @@ $('#fileupload').fileupload({
 });
 $(function () {
     $('#fileupload').fileupload({
-//        maxChunkSize: 1000000000,
-        dataType: 'json',
         add: function (e, data) {
             data.context = $('<button/>').text('Upload')
                 .appendTo($('#upload'))

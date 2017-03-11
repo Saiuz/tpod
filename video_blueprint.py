@@ -5,9 +5,16 @@ import util
 import config
 import os
 import time
+from vatic import turkic_replacement
+import logging as log
+from db_util import session
+from tpod_models import *
+from os.path import basename
+from flask import current_app as app
 
 video_page = Blueprint('video_page', __name__, url_prefix='/video', template_folder='templates',
                        static_url_path='/static', static_folder='static')
+
 
 @video_page.route("/index", methods=["GET"])
 @login_required
@@ -37,15 +44,35 @@ def upload():
     if request.method == 'POST':
         # we are expected to save the uploaded file and return some infos about it:
         #                              vvvvvvvvv   this is the name for input type=file
+        video_name = request.form['video_name']
         data_file = request.files['file']
-        file_name = data_file.filename
-        file_path = save_file(data_file, file_name)
-        print file_path
-        print util.is_video_file(file_name)
-        file_size = util.get_file_size(file_path)
-        # providing the thumbnail url is optional
-        return jsonify(name=file_name,
-                       size=file_size)
+        print video_name
+        print data_file
+        # file_name = data_file.filename
+        # file_path = save_file(data_file, file_name)
+        # print file_path
+        # if util.is_video_file(file_name):
+        #     add_video(file_path)
+        #     print get_videos()
+        # file_size = util.get_file_size(file_path)
+        # # providing the thumbnail url is optional
+        # return jsonify(name=file_name,
+        #                size=file_size)
+        return 'hahaha'
+
+
+def add_video(video_path):
+    extract_path = config.EXTRACT_PATH + os.path.splitext(basename(video_path))[0]
+    print('extract video begin %s' % extract_path)
+    if not os.path.exists(extract_path):
+        os.makedirs(extract_path)
+    turkic_replacement.extract(video_path, extract_path)
+    print('extract video end %s' % extract_path)
+
+
+def get_videos():
+    result = session.query(Video).all()
+    return result
 
 
 def save_file(data_file, file_name):
