@@ -17,6 +17,7 @@ video_page = Blueprint('video_page', __name__, url_prefix='/video', template_fol
 
 logger = m_logger.get_logger('VIDEO_PAGE')
 
+
 @video_page.route("/index", methods=["GET"])
 @login_required
 def index():

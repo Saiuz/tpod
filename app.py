@@ -59,7 +59,7 @@ admin.register(Classifier, session=session)
 @app.route("/", methods=["GET", "POST"])
 @login_required
 def index():
-    return 'index'
+    return redirect('video/list')
 
 
 @app.route("/login", methods=["GET", "POST"])

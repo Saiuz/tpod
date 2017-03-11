@@ -26,8 +26,8 @@ def get_all_job_urls(video):
     for segment in video.segments:
         for job in segment.jobs:
             obj = {
-                'url':job.offlineurl(''),
-                'index':len(result)
+                'url': job.offlineurl(''),
+                'index': len(result)
             }
             result.append(obj)
     return result

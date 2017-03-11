@@ -2,7 +2,7 @@
 {% block title %}File Uploader{% endblock %}
 
 {% block page_content %}
-<div class="container">
+<div class="container" id="video_container">
     <blockquote>
         <p>Welcome to Object Detectior Building Tool</p>
     </blockquote>
@@ -12,46 +12,56 @@
         {% for video in videos %}
         <li >
             <div class="item_video">
-                <h4> Video Name: {{video.name}}</h4>
-                <h5> Labels:</h5>
-                <ul class="list_labels">
-                {% for label in video.labels %}
-                    <li >
-                        <h5> Name: {{label.name}}</h5>
-                        <form action="../label/delete" method="POST">
-                            <input hidden name="label_id" value="{{label.id}}">
-                            <button type="submit">Delete label</button>
-                        </form>
+                <h4 class="text_video_name"> Video Name: {{video.name}}</h4>
+                <div class="item_video_info">
+                    <h5> Labels:</h5>
+                    <ul class="list_labels">
+                    {% for label in video.labels %}
+                        <li class="item_label">
+                            <p class="item_label_name"> Name: {{label.name}}</p>
+                            <form class="item_label_form" action="../label/delete" method="POST">
+                                <input hidden name="label_id" value="{{label.id}}">
+                                <button class="btn btn-danger" type="submit">Delete label</button>
+                            </form>
 
-                    </li>
-                {% endfor%}
-                </ul>
-                <form action="../label/add" method="POST">
-                    <input hidden name="video_id" value="{{video.id}}">
-                    <input type="text" name="label_name">
-                    <button type="submit">Add label</button>
-                </form>
+                        </li>
+                    {% endfor%}
+                    </ul>
+                    <h5> Add Labels:</h5>
+                    <form action="../label/add" method="POST" class="form-inline add_label_form">
+                        <input hidden name="video_id" value="{{video.id}}">
+                        <div class="form-group">
+                            <label >Label Name:</label>
+                            <input type="text" name="label_name" class="form-control">
+                        </div>
+                        <button class="btn btn-primary" type="submit">Add label</button>
+                    </form>
 
-                <h5> Jobs:</h5>
-                <ul class="list_jobs">
-                 {% for url_obj in video.job_urls %}
-                    <li >
-                        <a href="{{url_obj.url}}">Job:{{url_obj.index}}</a>
-                    </li>
-                {% endfor%}
-                </ul>
+                    <h5> Jobs:</h5>
+                    <ul class="list_jobs">
+                     {% for url_obj in video.job_urls %}
+                        <li >
+                            <a href="{{url_obj.url}}">Click to Start Labeling Job {{url_obj.index}}</a>
+                        </li>
+                    {% endfor%}
+                    </ul>
 
+                </div>
             </div>
         </li>
         {% endfor%}
     </ul>
     <br>
-    <br>
-    <br>
-    <form id="fileupload" action="upload" method="POST" enctype="multipart/form-data">
-        Input the name of your video (optional): <br>
-        <input type="text" name="video_name"><br>
-        <input type="file" name="file" data-url="upload" multiple>
+    <h4> Upload Video:</h4>
+    <form id="fileupload" action="upload" method="POST" enctype="multipart/form-data" class="form-inline">
+        <div class="form-group">
+        <label for="video_name">Video Name:</label>
+        <input id="video_name" type="text" name="video_name" class="form-control"><br>
+        </div>
+        <div class="form-group">
+            <label for="file_upload">Choose the video:</label>
+            <input id="file_upload" type="file" name="file" data-url="upload" multiple class="form-control">
+        </div>
     </form>
 
     <div id="upload">
@@ -63,6 +73,7 @@
 {% endblock %}
 
 {% block scripts %}
+<link rel="stylesheet" href="static/css/video_page.css">
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
 <script src="static/js/vendor/jquery.ui.widget.js"></script>
 <script src="static/js/jquery.iframe-transport.js"></script>
@@ -90,7 +101,7 @@ $('#fileupload').fileupload({
 $(function () {
     $('#fileupload').fileupload({
         add: function (e, data) {
-            data.context = $('<button/>').text('Upload')
+            data.context = $('<button class="btn btn-primary"/>').text('Upload')
                 .appendTo($('#upload'))
                 .click(function () {
                     data.context = $('<p/>').text('Uploading...').replaceAll($(this));

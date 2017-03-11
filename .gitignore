@@ -2,5 +2,5 @@
 upload/*
 .idea
 extract/*
-public/*
+public/frame/*
 homographies/*
