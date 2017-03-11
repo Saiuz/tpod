@@ -27,7 +27,7 @@ STATIC_BASE = os.path.join(HOME_BASE, 'public')
 STATIC_BASE_LEN = len(STATIC_BASE)
 
 
-vatic_page = Blueprint('vatic_page', __name__)
+vatic_page = Blueprint('vatic_page', __name__, static_folder='public')
 
 logger = logging.getLogger("vatic.server")
 logger.setLevel(logging.DEBUG)
@@ -77,7 +77,10 @@ def getallvideos():
         videos.append(newvideo)
     return videos
 
+
 handlers = {}
+
+
 @vatic_page.route("/server/<string:action>", methods=['GET'])
 def actions(action):
     logger.debug('action input {}'.format(action))
@@ -88,6 +91,7 @@ def actions(action):
             session.remove()
         return simplejson.dumps(response)
     return "no such action"
+
 
 @vatic_page.route("/server/getjob/<int:id>/<int:verified>", methods=['GET'])    
 def getjob(id, verified):
@@ -145,7 +149,8 @@ def getjob(id, verified):
         "pointmode":    int(video.pointmode),
     }
     return simplejson.dumps(msg)
-    
+
+
 @vatic_page.route("/server/getboxesforjob/<int:id>", methods=['GET'])
 @vatic_handler
 def getboxesforjob(id):
@@ -228,6 +233,7 @@ def readpaths(tracks):
         logger.debug("attributes {}".format(attributes))            
     paths=[readpath(label, userid, done, track, attributes) for label, userid, done, track, attributes in tracks]
     return paths
+
 
 @vatic_page.route("/server/savejob/<int:id>", methods=['POST'])
 @vatic_handler
@@ -378,7 +384,8 @@ def trackforward(id, start, end, tracker, trackid):
 @vatic_page.route('/<path:path>', methods=['GET'])
 def public_files(path):
     if '.' in path:
-        public_dir=os.path.join(config.VATIC_URL_PREFIX.replace('/',''),'public')
+        public_dir = 'public'
+        # public_dir=os.path.join(config.VATIC_URL_PREFIX.replace('/',''),'public')
         return send_from_directory(public_dir,path)
     return "not a static file"
 

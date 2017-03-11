@@ -7,6 +7,47 @@
         <p>Welcome to Object Detectior Building Tool</p>
     </blockquote>
     <br>
+
+    <ul id="list_video">
+        {% for video in videos %}
+        <li >
+            <div class="item_video">
+                <h4> Video Name: {{video.name}}</h4>
+                <h5> Labels:</h5>
+                <ul class="list_labels">
+                {% for label in video.labels %}
+                    <li >
+                        <h5> Name: {{label.name}}</h5>
+                        <form action="../label/delete" method="POST">
+                            <input hidden name="label_id" value="{{label.id}}">
+                            <button type="submit">Delete label</button>
+                        </form>
+
+                    </li>
+                {% endfor%}
+                </ul>
+                <form action="../label/add" method="POST">
+                    <input hidden name="video_id" value="{{video.id}}">
+                    <input type="text" name="label_name">
+                    <button type="submit">Add label</button>
+                </form>
+
+                <h5> Jobs:</h5>
+                <ul class="list_jobs">
+                 {% for url_obj in video.job_urls %}
+                    <li >
+                        <a href="{{url_obj.url}}">Job:{{url_obj.index}}</a>
+                    </li>
+                {% endfor%}
+                </ul>
+
+            </div>
+        </li>
+        {% endfor%}
+    </ul>
+    <br>
+    <br>
+    <br>
     <form id="fileupload" action="upload" method="POST" enctype="multipart/form-data">
         Input the name of your video (optional): <br>
         <input type="text" name="video_name"><br>
@@ -58,6 +99,7 @@ $(function () {
         },
         done: function (e, data) {
             data.context.text('Upload finished.');
+            location.reload()
         }
     });
 });

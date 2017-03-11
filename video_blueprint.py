@@ -6,15 +6,16 @@ import config
 import os
 import time
 from vatic import turkic_replacement
-import logging as log
-from db_util import session
 from tpod_models import *
 from os.path import basename
 from flask import current_app as app
+import m_logger
+import db_helper
 
 video_page = Blueprint('video_page', __name__, url_prefix='/video', template_folder='templates',
                        static_url_path='/static', static_folder='static')
 
+logger = m_logger.get_logger('VIDEO_PAGE')
 
 @video_page.route("/index", methods=["GET"])
 @login_required
@@ -25,7 +26,7 @@ def index():
 @video_page.route("/list", methods=["GET"])
 @login_required
 def list_video():
-    return render_template('index_video.html')
+    return render_template('index_video.html', videos = db_helper.get_videos())
 
 
 @video_page.route("/delete", methods=["POST"])
@@ -46,33 +47,26 @@ def upload():
         #                              vvvvvvvvv   this is the name for input type=file
         video_name = request.form['video_name']
         data_file = request.files['file']
-        print video_name
-        print data_file
-        # file_name = data_file.filename
-        # file_path = save_file(data_file, file_name)
-        # print file_path
-        # if util.is_video_file(file_name):
-        #     add_video(file_path)
-        #     print get_videos()
-        # file_size = util.get_file_size(file_path)
-        # # providing the thumbnail url is optional
-        # return jsonify(name=file_name,
-        #                size=file_size)
-        return 'hahaha'
+        logger.debug('receive video %s with name %s' % (str(data_file), video_name))
+        file_name = data_file.filename
+        file_path = save_file(data_file, file_name)
+        if util.is_video_file(file_name):
+            add_video(file_path, video_name)
+        file_size = util.get_file_size(file_path)
+        # providing the thumbnail url is optional
+        return jsonify(name=file_name,
+                       size=file_size)
 
 
-def add_video(video_path):
+def add_video(video_path, video_name):
     extract_path = config.EXTRACT_PATH + os.path.splitext(basename(video_path))[0]
-    print('extract video begin %s' % extract_path)
+    logger.debug('extract video begin %s' % extract_path)
     if not os.path.exists(extract_path):
         os.makedirs(extract_path)
     turkic_replacement.extract(video_path, extract_path)
-    print('extract video end %s' % extract_path)
-
-
-def get_videos():
-    result = session.query(Video).all()
-    return result
+    logger.debug('extract video end %s' % extract_path)
+    # there is no label by default
+    turkic_replacement.load(video_name, extract_path, [])
 
 
 def save_file(data_file, file_name):

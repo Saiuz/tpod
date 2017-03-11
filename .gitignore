@@ -1,3 +1,6 @@
 *.pyc
 upload/*
 .idea
+extract/*
+public/*
+homographies/*

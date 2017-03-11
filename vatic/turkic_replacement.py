@@ -22,7 +22,7 @@ def extract(path_video, path_output):
     return True
 
 
-def load(video_name, video_path_output, labels):
+def load(video_name, video_path_output, labels, segment_length = 3000):
     # video_name = slug
     # video_path_output = location
     first_frame_path = Video.getframepath(0, video_path_output)
@@ -131,19 +131,21 @@ def load(video_name, video_path_output, labels):
 
     print "Creating symbolic link..."
     symlink = "public/frames/{0}".format(video.slug)
+
     try:
         os.remove(symlink)
     except:
         pass
+    if not os.path.exists('public/frames'):
+        os.makedirs('public/frames')
     os.symlink(video.location, symlink)
 
     print "Creating segments..."
     # create shots and jobs
     startframe = 0
     stopframe =  video.totalframes - 1
-    length = 1000
-    for start in range(startframe, stopframe, length):
-        stop = min(start + length + 1,
+    for start in range(startframe, stopframe, segment_length):
+        stop = min(start + segment_length + 1,
                    stopframe)
         segment = Segment(start = start,
                             stop = stop,

@@ -12,6 +12,7 @@ from video_blueprint import video_page
 from label_blueprint import label_page
 from classifier_blueprint import classifier_page
 from flask_bootstrap import Bootstrap
+import response_util
 
 
 app = Flask(__name__, static_url_path='/static', template_folder='/templates')
@@ -60,26 +61,21 @@ admin.register(Classifier, session=session)
 def index():
     return 'index'
 
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == 'POST':
-        ret = {
-            "status": 1,
-            "msg": "success",
-            "redirect":"/"
-        }
         form = LoginForm(request.form)
         if form.validate():
             user = form.user
             print "login success "
             login_user(user)
-            return jsonify(ret)
+            return response_util.json_success_response()
         else:
-            ret['status'] = 2
-            ret['msg'] = str(form.errors)
-            return jsonify(ret)
+            return response_util.json_error_response(msg=str(form.errors))
     else:
         return render_template('login.html', csrf=app.config['CSRF_ENABLED'] )
+
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
@@ -95,6 +91,7 @@ def signup():
             flash('User successfully registered')
             return Response('Registered')
     return redirect(url_for('login'))
+
 
 # somewhere to logout
 @app.route("/logout")
