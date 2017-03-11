@@ -16,6 +16,15 @@ def extract(path_video, path_output):
         img_path = Video.getframepath(count, path_output)
         if not os.path.isdir(os.path.dirname(img_path)):
             os.makedirs(os.path.dirname(img_path))
+        # resize the image to 720 x 480
+        hw_ratio = float(image.shape[0])/float(image.shape[1])
+        if hw_ratio > 480.0 / 720.0:
+            target_height = 480
+            target_width = target_height/hw_ratio
+        else:
+            target_width = 720
+            target_height = target_width * hw_ratio
+        image = cv2.resize(image, (int(target_width), int(target_height)))
         cv2.imwrite(img_path, image)
         success, image = cap.read()
         count += 1
