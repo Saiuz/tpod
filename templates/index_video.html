@@ -13,6 +13,7 @@
         <li >
             <div class="item_video">
                 <h4 class="text_video_name"> Video Name: {{video.name}}</h4>
+
                 <div class="item_video_info">
                     <h5> Labels:</h5>
                     <ul class="list_labels">
@@ -46,7 +47,11 @@
                     {% endfor%}
                     </ul>
 
-                </div>
+                 </div>
+                 <form class="item_delete_video" action="delete" method="POST">
+                      <input hidden name="video_id" value="{{video.id}}">
+                      <button class="btn btn-danger" type="submit">Delete Video</button>
+                 </form>
             </div>
         </li>
         {% endfor%}
@@ -74,11 +79,21 @@
 
 {% block scripts %}
 <link rel="stylesheet" href="static/css/video_page.css">
-<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
 <script src="static/js/vendor/jquery.ui.widget.js"></script>
 <script src="static/js/jquery.iframe-transport.js"></script>
 <script src="static/js/jquery.fileupload.js"></script>
 <script>
+
+$(".item_delete_video").submit(function(e){
+    e.preventDefault();
+    var form = this;
+    BootstrapDialog.confirm('Are you sure to delete this video? It will delete all related files, labels for this video', function(result){
+        if(result) {
+            form.submit()
+        }else {
+        }
+    });
+});
 $(function () {
     $('#fileupload').fileupload({
         done: function (e, data) {

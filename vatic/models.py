@@ -37,6 +37,9 @@ class Video(Base):
     homographylocation  = Column(String(250), nullable = True, default = None)
     pointmode       = Column(Boolean, default = False)
 
+    orig_file_path  = Column(String(550))
+    extract_path  = Column(String(550))
+
     owner_id = Column(Integer, ForeignKey("user.id"))
     classifier_id = Column(Integer, ForeignKey("classifier.id"))
 

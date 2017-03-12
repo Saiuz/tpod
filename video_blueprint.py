@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, abort
+from flask import Blueprint, render_template, abort, redirect
 from flask_login import LoginManager, login_required, login_user, logout_user, current_user
 from flask import request, url_for, jsonify, Response
 import util
@@ -12,6 +12,9 @@ from flask import current_app as app
 import m_logger
 import db_helper
 import zipfile
+import shutil
+from forms import DeleteVideoForm
+import response_util
 
 
 video_page = Blueprint('video_page', __name__, url_prefix='/video', template_folder='templates',
@@ -35,7 +38,11 @@ def list_video():
 @video_page.route("/delete", methods=["POST"])
 @login_required
 def delete_video():
-    return Response('<p>Delete video</p>')
+    form = DeleteVideoForm(request.form)
+    if form.validate():
+        turkic_replacement.delete_video(form.video_id.data)
+        return redirect(request.referrer)
+    return response_util.json_error_response(msg=str(form.errors))
 
 
 @login_required
@@ -73,7 +80,7 @@ def add_video(video_path, video_name):
     turkic_replacement.extract(video_path, extract_path)
     logger.debug('extract video end %s' % extract_path)
     # there is no label by default
-    turkic_replacement.load(video_name, extract_path, [])
+    turkic_replacement.load(video_name, extract_path, [], video_path)
 
 
 def add_image_sequence(zip_file_path, video_name):
@@ -101,8 +108,10 @@ def add_image_sequence(zip_file_path, video_name):
         os.makedirs(extract_path)
     turkic_replacement.extract_image_sequences(path_list, extract_path)
     logger.debug('extract video end %s' % extract_path)
+    # delete the temporary unzip path
+    shutil.rmtree(upload_folder)
     # there is no label by default
-    turkic_replacement.load(video_name, extract_path, [])
+    turkic_replacement.load(video_name, extract_path, [], zip_file_path)
 
 
 def save_file(data_file, file_name):

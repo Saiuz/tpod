@@ -9,6 +9,24 @@ import wtforms.validators
 from vatic.models import *
 
 
+class DeleteVideoForm(FlaskForm):
+    video_id = StringField('video_id', validators=[DataRequired()])
+
+    def __init__(self, *args, **kwargs):
+        kwargs['csrf_enabled'] = False
+        FlaskForm.__init__(self, *args, **kwargs)
+
+    def validate(self):
+        rv = FlaskForm.validate(self)
+        if not rv:
+            return False
+        video = session.query(Video).filter(Video.id == self.video_id.data).first()
+        if not video:
+            self.video_id.errors.append('video not exist')
+            return False
+        return True
+
+
 class DeleteLabelForm(FlaskForm):
     label_id = StringField('label_id', validators=[DataRequired()])
 

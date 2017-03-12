@@ -2,6 +2,62 @@ import cv2
 
 from db_util import session
 from models import *
+import shutil
+
+
+def delete_video(video_id):
+    video = session.query(Video).filter(Video.id == video_id).first()
+    if video:
+        # delete original file
+        original_file_path = video.orig_file_path
+        if os.path.exists(original_file_path):
+            os.remove(original_file_path)
+
+        # delete extract file
+        extract_file_path = video.extract_path
+        if os.path.exists(extract_file_path):
+            shutil.rmtree(extract_file_path)
+
+        # delete frame folder
+        frame_folder_path = 'public/frames/' + str(video.slug)
+        try:
+            shutil.rmtree(frame_folder_path)
+        except:
+            logger.debug('remove video frame unsuccess')
+        try:
+            os.remove(frame_folder_path)
+        except:
+            logger.debug('remove video frame unsuccess')
+        try:
+            os.unlink(frame_folder_path)
+        except:
+            logger.debug('remove video frame unsuccess')
+        try:
+            os.rmdir(frame_folder_path)
+        except:
+            logger.debug('remove video frame unsuccess')
+
+        # delete labels
+        labels = session.query(Label).filter(Label.videoid == video_id).all()
+        for label in labels:
+            # delete label related path
+            paths = session.query(Path).filter(Path.labelid == label.id).all()
+            for path in paths:
+                session.delete(path)
+            session.delete(label)
+
+        # delete segments
+        segments = session.query(Segment).filter(Segment.videoid == video_id).all()
+        for segment in segments:
+            # delete session related job
+            jobs = session.query(Job).filter(Job.segmentid == segment.id).all()
+            for job in jobs:
+                session.delete(job)
+            session.delete(segment)
+        session.delete(video)
+        session.commit()
+        return True
+    return False
 
 
 def extract(path_video, path_output):
@@ -57,7 +113,7 @@ def extract_image_sequences(image_path_list, path_output):
     return True
 
 
-def load(video_name, video_path_output, labels, segment_length = 3000):
+def load(video_name, video_path_output, labels, orig_file_path, segment_length = 3000):
     # video_name = slug
     # video_path_output = location
     first_frame_path = Video.getframepath(0, video_path_output)
@@ -138,7 +194,9 @@ def load(video_name, video_path_output, labels, segment_length = 3000):
                   isfortraining = False,
                   blowradius = 0,
                   homographylocation = homographydir,
-                  pointmode = False)
+                  pointmode = False,
+                  orig_file_path = orig_file_path,
+                  extract_path = video_path_output)
     session.add(video)
     print "Binding labels and attributes..."
 

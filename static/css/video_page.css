@@ -41,3 +41,8 @@ h4{
 h5{
     font-weight: bold;
 }
+
+.item_delete_video{
+    margin-left: 30px;
+    margin-top: 20px;
+}
