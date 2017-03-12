@@ -52,14 +52,14 @@
         {% endfor%}
     </ul>
     <br>
-    <h4> Upload Video:</h4>
+    <h4> Upload Video (mp4/avi/m4v) or Zipped Image Sequence (zip):</h4>
     <form id="fileupload" action="upload" method="POST" enctype="multipart/form-data" class="form-inline">
         <div class="form-group">
         <label for="video_name">Video Name:</label>
         <input id="video_name" type="text" name="video_name" class="form-control"><br>
         </div>
         <div class="form-group">
-            <label for="file_upload">Choose the video:</label>
+            <label for="file_upload">Choose the file:</label>
             <input id="file_upload" type="file" name="file" data-url="upload" multiple class="form-control">
         </div>
     </form>
@@ -104,8 +104,19 @@ $(function () {
             data.context = $('<button class="btn btn-primary"/>').text('Upload')
                 .appendTo($('#upload'))
                 .click(function () {
-                    data.context = $('<p/>').text('Uploading...').replaceAll($(this));
-                    data.submit();
+                    var permitted = true;
+
+                    //check file type, only mp4, avi, zip are allowed
+                    var uploadFile = data.files[0];
+                    if(!(/\.(zip|mp4|avi|m4v)$/i).test(uploadFile.name)){
+                        permitted = false;
+                        alert('file type not allowed, you can upload either video(mp4/avi) or zip file')
+                    }
+
+                    if(permitted){
+                        data.context = $('<p/>').text('Uploading...').replaceAll($(this));
+                        data.submit();
+                    }
                 });
         },
         done: function (e, data) {

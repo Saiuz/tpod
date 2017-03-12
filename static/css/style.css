@@ -62,3 +62,7 @@ body {
     height: 18px;
     background: green;
 }
+
+.nav-logout{
+    float: right;
+}

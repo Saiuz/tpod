@@ -33,9 +33,11 @@ app.config['SECRET_KEY'] = 'wtfwtfwtf?'
 
 login_manager.login_view = "login"
 
+
 @login_manager.user_loader
 def load_user(id):
     return session.query(User).filter(User.id == id).first()
+
 
 # Create customized model view class
 class MyModelView(sqlamodel.ModelView):
@@ -64,6 +66,8 @@ def index():
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
+    if current_user and current_user.is_authenticated:
+        return redirect('/')
     if request.method == 'POST':
         form = LoginForm(request.form)
         if form.validate():
@@ -75,6 +79,12 @@ def login():
             return response_util.json_error_response(msg=str(form.errors))
     else:
         return render_template('login.html', csrf=app.config['CSRF_ENABLED'] )
+
+
+@app.route("/logout", methods=["GET", "POST"])
+def logout():
+    logout_user()
+    return redirect('/login')
 
 
 @app.route('/signup', methods=['GET', 'POST'])
@@ -91,14 +101,6 @@ def signup():
             flash('User successfully registered')
             return Response('Registered')
     return redirect(url_for('login'))
-
-
-# somewhere to logout
-@app.route("/logout")
-@login_required
-def logout():
-    logout_user()
-    return Response('<p>Logged out</p>')
 
 
 

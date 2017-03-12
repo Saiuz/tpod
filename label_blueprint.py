@@ -11,12 +11,6 @@ label_page = Blueprint('label_page', __name__, url_prefix='/label')
 logger = m_logger.get_logger('LABEL_PAGE')
 
 
-@label_page.route("/list", methods=["GET"])
-@login_required
-def list_label():
-    return Response('<p>List label</p>')
-
-
 @label_page.route("/delete", methods=["POST"])
 @login_required
 def delete_label():
@@ -36,9 +30,5 @@ def add_label():
         session.commit()
         return redirect(request.referrer)
     return response_util.json_error_response(msg=str(form.errors))
-
-
-
-
 
 

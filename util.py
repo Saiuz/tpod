@@ -17,7 +17,12 @@ def get_file_md5(file_name):
 
 def is_video_file(file_name):
     file_name, file_extension = os.path.splitext(file_name)
-    return file_extension.lower() == '.mp4' or file_extension.lower() == '.avi'
+    return file_extension.lower() == '.mp4' or file_extension.lower() == '.avi' or file_extension.lower() == '.m4v'
+
+
+def is_image_file(file_name):
+    file_name, file_extension = os.path.splitext(file_name)
+    return file_extension.lower() == '.png' or file_extension.lower() == '.jpg' or file_extension.lower() == '.jpeg'
 
 
 def is_zip_file(file_name):
