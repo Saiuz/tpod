@@ -6,6 +6,7 @@
 
 .item_label{
     padding-bottom: 10px;
+    max-width: 700px;
 }
 
 .item_video{
@@ -45,4 +46,13 @@ h5{
 .item_delete_video{
     margin-left: 30px;
     margin-top: 20px;
+}
+
+.label_edit{
+    min-width:300px;
+}
+
+.label_edit_button{
+    visibility: hidden;
+    width: 0px;
 }

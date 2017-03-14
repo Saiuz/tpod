@@ -20,6 +20,11 @@ else:
     Session = sessionmaker(bind=engine)
     session = scoped_session(Session)
 
+    def renew_session():
+        global session
+        session = scoped_session(Session)
+        return session
+
     def connect():
         """
         Generates a database connection.

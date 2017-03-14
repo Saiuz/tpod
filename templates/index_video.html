@@ -8,19 +8,27 @@
     </blockquote>
     <br>
 
-    <ul id="list_video">
+    <ul id="list_video" class="list-group">
         {% for video in videos %}
-        <li >
+        <li class="list-group-item">
             <div class="item_video">
                 <h4 class="text_video_name"> Video Name: {{video.name}}</h4>
 
                 <div class="item_video_info">
                     <h5> Labels:</h5>
-                    <ul class="list_labels">
+                    <ul class="list_labels list-group">
                     {% for label in video.labels %}
-                        <li class="item_label">
+                        <li class="item_label list-group-item">
                             <p class="item_label_name"> Name: {{label.name}}</p>
-                            <form class="item_label_form" action="../label/delete" method="POST">
+                             <form class="item_label_form item_label_form_edit form-inline" action="../label/edit" method="POST">
+                                <input hidden name="label_id" value="{{label.id}}">
+                                <div class="form-group">
+                                    <input id="label_name" placeholder="Rename by type in name and 'Enter'" type="text" name="label_name" class="form-control label_edit"><br>
+                                </div>
+                                 <button class="btn btn-primary label_edit_button" type="submit">Edit label</button>
+                            </form>
+
+                            <form class="item_label_form form-inline item_label_form_delete" action="../label/delete" method="POST">
                                 <input hidden name="label_id" value="{{label.id}}">
                                 <button class="btn btn-danger" type="submit">Delete label</button>
                             </form>
@@ -94,6 +102,18 @@ $(".item_delete_video").submit(function(e){
         }
     });
 });
+
+$(".item_label_form_delete").submit(function(e){
+    e.preventDefault();
+    var form = this;
+    BootstrapDialog.confirm('Are you sure to delete this label? It will delete all related files, labels for this label', function(result){
+        if(result) {
+            form.submit()
+        }else {
+        }
+    });
+});
+
 $(function () {
     $('#fileupload').fileupload({
         done: function (e, data) {

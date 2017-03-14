@@ -2,7 +2,6 @@ from flask import Flask, request, render_template, session, redirect, url_for, f
 from vatic.vatic import vatic_page
 from flask_login import LoginManager, login_required, login_user, logout_user, current_user
 from tpod_models import User, Video, Classifier
-from db_util import session
 from forms import *
 import config
 from flask_superadmin import Admin, model, AdminIndexView
@@ -13,7 +12,9 @@ from label_blueprint import label_page
 from classifier_blueprint import classifier_page
 from flask_bootstrap import Bootstrap
 import response_util
+import db_util
 
+session = db_util.session
 
 app = Flask(__name__, static_url_path='/static', template_folder='/templates')
 app.register_blueprint(vatic_page)
@@ -36,6 +37,8 @@ login_manager.login_view = "login"
 
 @login_manager.user_loader
 def load_user(id):
+    global session
+    session = db_util.renew_session()
     return session.query(User).filter(User.id == id).first()
 
 

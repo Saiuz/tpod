@@ -5,7 +5,8 @@ from db_util import session
 from vatic.models import *
 import response_util
 import m_logger
-from forms import AddLabelForm, DeleteLabelForm
+from forms import AddLabelForm, DeleteLabelForm, EditLabelForm
+from vatic import turkic_replacement
 
 label_page = Blueprint('label_page', __name__, url_prefix='/label')
 logger = m_logger.get_logger('LABEL_PAGE')
@@ -20,6 +21,15 @@ def delete_label():
     return response_util.json_error_response(msg=str(form.errors))
 
 
+@label_page.route("/edit", methods=["POST"])
+@login_required
+def edit_label():
+    form = EditLabelForm(request.form)
+    if form.validate():
+        return redirect(request.referrer)
+    return response_util.json_error_response(msg=str(form.errors))
+
+
 @label_page.route("/add", methods=["POST"])
 @login_required
 def add_label():
@@ -28,6 +38,7 @@ def add_label():
         label = Label(text = form.label_name.data, videoid = form.video_id.data)
         session.add(label)
         session.commit()
+        turkic_replacement.publish()
         return redirect(request.referrer)
     return response_util.json_error_response(msg=str(form.errors))
 

@@ -46,6 +46,27 @@ class DeleteLabelForm(FlaskForm):
         return True
 
 
+class EditLabelForm(FlaskForm):
+    label_id = StringField('label_id', validators=[DataRequired()])
+    label_name = StringField('label_name', validators=[DataRequired()])
+
+    def __init__(self, *args, **kwargs):
+        kwargs['csrf_enabled'] = False
+        FlaskForm.__init__(self, *args, **kwargs)
+
+    def validate(self):
+        rv = FlaskForm.validate(self)
+        if not rv:
+            return False
+        label = session.query(Label).filter(Label.id == self.label_id.data).first()
+        if not label:
+            self.label_id.errors.append('label not exist')
+            return False
+        label.text = self.label_name.data
+        session.commit()
+        return True
+
+
 class AddLabelForm(FlaskForm):
     video_id = StringField('video_id', validators=[DataRequired()])
     label_name = StringField('label_name', validators=[DataRequired()])

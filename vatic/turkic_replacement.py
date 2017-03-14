@@ -249,10 +249,6 @@ def load(video_name, video_path_output, labels, orig_file_path, segment_length =
     session.commit()
 
 
-
-
-
-
 def image_exist(img_path):
     try:
         img = cv2.imread(img_path)
@@ -260,5 +256,44 @@ def image_exist(img_path):
     except Exception:
         print "Image not exist " + str(img_path)
     return None
+
+
+def publish():
+    return None
+    # try:
+    #     query = session.query(Job)
+    #     query = query.filter(Job.ready == True)
+    #     query = query.filter(Job.published == False)
+    #     for hit in query:
+    #         hit.publish()
+    #         print hit.offlineurl(config.localhost)
+    #         print "Published {0}".format(hit.hitid)
+    #         session.add(hit)
+    #         session.commit()
+    # except Exception as e:
+    #     print e
+    # finally:
+    #     session.commit()
+    #     session.close()
+
+
+    # try:
+    #     query = session.query(HIT)
+    #     query = query.join(HITGroup)
+    #     query = query.filter(HITGroup.offline == args.offline)
+    #     query = query.filter(HIT.ready == True)
+    #     query = query.filter(HIT.published == False)
+    #     for hit in query:
+    #         if args.offline:
+    #             print hit.offlineurl(config.localhost)
+    #         else:
+    #             hit.publish()
+    #             print "Published {0}".format(hit.hitid)
+    #             session.add(hit)
+    #             session.commit()
+    # finally:
+    #     session.commit()
+    #     session.close()
+
 
 

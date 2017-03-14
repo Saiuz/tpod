@@ -1,5 +1,6 @@
 import logging
 import os
+import api
 
 import numpy as np
 import vision
@@ -168,6 +169,35 @@ class Job(Base):
     accepted      = Column(Boolean, default = False, index = True)
     validated     = Column(Boolean, default = False, index = True)
     useful        = Column(Boolean, default = True)
+
+
+    def publish(self):
+        if self.published:
+            raise RuntimeError("HIT cannot be published because it has already"
+                " been published.")
+        # resp = api.server.createhit(
+        #     title = self.group.title,
+        #     description = self.group.description,
+        #     amount = self.group.cost,
+        #     duration = self.group.duration,
+        #     lifetime = self.group.lifetime,
+        #     keywords = self.group.keywords,
+        #     height = self.group.height,
+        #     minapprovedamount = self.group.minapprovedamount,
+        #     minapprovedpercent = self.group.minapprovedpercent,
+        #     countrycode = self.group.countrycode,
+        #     page = self.getpage())
+
+        resp = api.server.createhit(
+            title = 'title',
+            description = 'description',
+            amount = None,
+            duration = None,
+            lifetime = None,
+            page = self.getpage())
+        self.hitid = resp.hitid
+        self.published = True
+        logger.debug("Published HIT {0}".format(self.hitid))
 
     ## TODO get page
     def getpage(self):
