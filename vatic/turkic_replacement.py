@@ -2,6 +2,7 @@ import cv2
 
 from db_util import session
 from models import *
+from tpod_models import *
 import shutil
 
 
@@ -113,7 +114,7 @@ def extract_image_sequences(image_path_list, path_output):
     return True
 
 
-def load(video_name, video_path_output, labels, orig_file_path, segment_length = 3000):
+def load(video_name, video_path_output, labels, orig_file_path, user_id, segment_length = 3000):
     # video_name = slug
     # video_path_output = location
     first_frame_path = Video.getframepath(0, video_path_output)
@@ -181,6 +182,8 @@ def load(video_name, video_path_output, labels, orig_file_path, segment_length =
         os.makedirs(homographydir)
     np.save(os.path.join(homographydir, "homography.npy"), np.identity(3))
 
+    current_user = session.query(User).filter(User.id == user_id).first()
+
     # create video
     video = Video(slug = video_name,
                   location = os.path.realpath(video_path_output),
@@ -196,8 +199,11 @@ def load(video_name, video_path_output, labels, orig_file_path, segment_length =
                   homographylocation = homographydir,
                   pointmode = False,
                   orig_file_path = orig_file_path,
-                  extract_path = video_path_output)
+                  extract_path = video_path_output,
+                  owner_id=user_id)
     session.add(video)
+    current_user.videos.append(video)
+
     print "Binding labels and attributes..."
 
     # create labels and attributes

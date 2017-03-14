@@ -9,6 +9,7 @@ from sqlalchemy import Column, Integer, Float, String, Boolean
 from sqlalchemy import ForeignKey, Table, PickleType
 from sqlalchemy.orm import relationship, backref
 from vision.track.interpolation import LinearFill
+from meta_table import video_evaluation_association_table
 
 from db_util import Base
 import config
@@ -41,8 +42,12 @@ class Video(Base):
     orig_file_path  = Column(String(550))
     extract_path  = Column(String(550))
 
-    owner_id = Column(Integer, ForeignKey("user.id"))
-    classifier_id = Column(Integer, ForeignKey("classifier.id"))
+    # many to one
+    owner_id = Column(Integer, ForeignKey("users.id"))
+    # many to one
+    classifier_id = Column(Integer, ForeignKey("classifiers.id"))
+    # many to many
+    evaluation_sets = relationship("EvaluationSet", secondary=video_evaluation_association_table, back_populates='videos')
 
     def __getitem__(self, frame):
         path = Video.getframepath(frame, self.location)

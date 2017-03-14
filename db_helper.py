@@ -47,8 +47,8 @@ def get_video_by_id(video_id):
         return generate_video_obj(query_result)
 
 
-def get_videos():
-    query_result = session.query(Video).all()
+def get_videos_of_user(user_id):
+    query_result = session.query(Video).filter(Video.owner_id == user_id).all()
     result = []
     for video in query_result:
         result.append(generate_video_obj(video))

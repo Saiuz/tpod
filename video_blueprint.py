@@ -32,7 +32,7 @@ def index():
 @video_page.route("/list", methods=["GET"])
 @login_required
 def list_video():
-    return render_template('index_video.html', videos = db_helper.get_videos())
+    return render_template('index_video.html', videos = db_helper.get_videos_of_user(current_user.id))
 
 
 @video_page.route("/delete", methods=["POST"])
@@ -80,7 +80,7 @@ def add_video(video_path, video_name):
     turkic_replacement.extract(video_path, extract_path)
     logger.debug('extract video end %s' % extract_path)
     # there is no label by default
-    turkic_replacement.load(video_name, extract_path, [], video_path)
+    turkic_replacement.load(video_name, extract_path, [], video_path, current_user.id)
 
 
 def add_image_sequence(zip_file_path, video_name):
@@ -111,7 +111,7 @@ def add_image_sequence(zip_file_path, video_name):
     # delete the temporary unzip path
     shutil.rmtree(upload_folder)
     # there is no label by default
-    turkic_replacement.load(video_name, extract_path, [], zip_file_path)
+    turkic_replacement.load(video_name, extract_path, [], zip_file_path, current_user.id)
 
 
 def save_file(data_file, file_name):
