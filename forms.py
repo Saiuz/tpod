@@ -1,12 +1,29 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField
-from wtforms import PasswordField
+from wtforms import PasswordField, IntegerField
 from wtforms.validators import DataRequired, EqualTo
 from wtforms import ValidationError
 from db_util import session
 from tpod_models import User
 import wtforms.validators
 from vatic.models import *
+
+
+class CreateClassifierForm(FlaskForm):
+    classifier_name = StringField('classifier_name', validators=[DataRequired()])
+    epoch = IntegerField('epoch', validators=[DataRequired()])
+    video_list = StringField('video_list', validators=[DataRequired()])
+    network_type = IntegerField('network_type', validators=[DataRequired()])
+
+    def __init__(self, *args, **kwargs):
+        kwargs['csrf_enabled'] = False
+        FlaskForm.__init__(self, *args, **kwargs)
+
+    def validate(self):
+        rv = FlaskForm.validate(self)
+        if not rv:
+            return False
+        return True
 
 
 class DeleteVideoForm(FlaskForm):

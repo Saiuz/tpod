@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}File Uploader{% endblock %}
+
+{% block page_content %}
+<div class="container" id="classifier_container">
+    <ul id="list_classifier" class="list-group">
+        {% for classifier in classifiers %}
+        <li class="list-group-item">
+            <div class="item_classifier">
+                <h4 class="text_video_name"> Classifier Name: {{video.name}}</h4>
+
+                <div class="item_classifier_info">
+                    <h5> Videos:</h5>
+                    <ul class="list_videos list-group">
+                    {% for video in classifier.videos %}
+                        <li class="item_video list-group-item">
+                            <p class="item_video_name"> Name: {{video.name}}</p>
+                        </li>
+                    {% endfor%}
+                    </ul>
+
+                    <h5> Labels:</h5>
+                    <ul class="list_labels list-group">
+                    {% for video in classifier.labels %}
+                        <li class="item_label list-group-item">
+                            <p class="item_video_name"> Name: {{label.name}}</p>
+                        </li>
+                    {% endfor%}
+                    </ul>
+
+                 </div>
+                 <form class="item_delete_classifier" action="delete" method="POST">
+                      <input hidden name="classifier_id" value="{{video.id}}">
+                      <button class="btn btn-danger" type="submit">Delete Classifier</button>
+                 </form>
+            </div>
+        </li>
+        {% endfor%}
+    </ul>
+    <br>
+   <h4> Create Classifier:</h4>
+    <form id="form_create_classifier" method="POST" action="create">
+        <div class="form-group form-inline">
+            <label for="classifier_name">Classifier Name:</label>
+            <input id="classifier_name" type="text" name="classifier_name" class="form-control"><br>
+        </div>
+        <div class="form-group form-inline">
+            <label for="param_network_type">Choose the Network Type:</label>
+            <select id="classifier-type-select" name="character">
+            </select>
+            <input id="param_network_type" type="text" name="network_type" hidden>
+        </div>
+
+        <div class="form-group form-inline">
+            <label for="param_videos">Choose Videos:</label>
+
+            <select id="video-select" name="character" multiple="multiple">
+            </select>
+            <input id="param_videos" type="text" name="video_list" hidden>
+        </div>
+
+        <div class="form-group form-inline">
+            <label for="epoch">Epoch:</label>
+            <input id="epoch" type="number" name="epoch" class="form-control" value="100"><br>
+        </div>
+
+        <button class="btn btn-primary" type="submit">Submit</button>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<link rel="stylesheet" href="static/css/classifier_page.css">
+<link rel="stylesheet" href="static/css/sol.css">
+<script src="static/js/vendor/jquery.ui.widget.js"></script>
+<script src="static/js/jquery.iframe-transport.js"></script>
+<script src="static/js/jquery.fileupload.js"></script>
+<script src="static/js/sol.js"></script>
+<script>
+    $(function() {
+           $('#video-select').searchableOptionList({
+                data: 'available_videos',
+               texts:{
+                    searchplaceholder:'Choose videos for the classifier'
+               }
+            });
+           $('#classifier-type-select').searchableOptionList({
+               data: 'available_classifier_types',
+               texts:{
+                    searchplaceholder:'choose the type of the classfier'
+               }
+            });
+    });
+
+$("#form_create_classifier").submit(function(e){
+    var selected_videos = $('#video-select').searchableOptionList().getSelection();
+    var selected_network = $('#classifier-type-select').searchableOptionList().getSelection();
+
+    var videos = "";
+    for(var i = 0; i < selected_videos.length; i++){
+        if(i == selected_videos.length - 1){
+            videos += (selected_videos[i].value);
+        }else{
+            videos += (selected_videos[i].value + ",");
+        }
+    }
+    var network_type;
+    for(var i = 0; i < selected_network.length; i++){
+        network_type = selected_network[i].value;
+    }
+    $('#param_videos').val(videos);
+    $('#param_network_type').val(network_type);
+
+    console.log(videos);
+    console.log(network_type);
+});
+
+$(".item_delete_classifier").submit(function(e){
+    e.preventDefault();
+    var form = this;
+    BootstrapDialog.confirm('Are you sure to delete this classifier? It will delete all related models, docker files', function(result){
+        if(result) {
+            form.submit()
+        }else {
+        }
+    });
+});
+
+</script>
+<![endif]-->
+{% endblock %}
+
+
+

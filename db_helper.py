@@ -55,4 +55,57 @@ def get_videos_of_user(user_id):
     return result
 
 
+def get_available_videos(user_id):
+    query_result = session.query(Video).filter(Video.owner_id == user_id).all()
+    result = []
+    for video in query_result:
+        obj = {
+            'name':video.slug,
+            'id':video.id,
+        }
+        result.append(obj)
+    return result
+
+
+def get_videos_labels_of_classifier(classifier):
+    videos = []
+    label_map = {}
+    for video in classifier.videos:
+        video_obj = {
+            'name':video.slug,
+            'id': video.id,
+        }
+        videos.append(video_obj)
+        # search all labels of that video
+        query_result = session.query(Label).filter(Label.videoid == video.id).all()
+        for label in query_result:
+            label_name = label.text
+            if label_name not in label_map:
+                label_obj = {
+                    'name':label_name,
+                    'id': label.id,
+                }
+                label_map[label_name] = label_obj
+    labels = []
+    for key in label_map.keys():
+        labels.append(label_map[key])
+    return videos, labels
+
+
+def get_classifiers_of_user(user_id):
+    query_result = session.query(Classifier).filter(Classifier.owner_id == user_id).all()
+    result = []
+    for classifier in query_result:
+        videos, labels = get_videos_labels_of_classifier(classifier)
+        obj = {
+            'name':classifier.name,
+            'id': classifier.id,
+            'videos': videos,
+            'labels':labels,
+        }
+
+        result.append(obj)
+    return result
+
+
 
