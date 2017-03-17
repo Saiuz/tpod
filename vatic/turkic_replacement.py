@@ -1,12 +1,13 @@
 import cv2
 
-from db_util import session
 from models import *
 from tpod_models import *
 import shutil
+import db_util
 
 
 def delete_video(video_id):
+    session = db_util.renew_session()
     video = session.query(Video).filter(Video.id == video_id).first()
     if video:
         # delete original file
@@ -138,6 +139,7 @@ def load(video_name, video_path_output, labels, orig_file_path, user_id, segment
     last_frame = image_exist(last_frame_path)
     if last_frame is None:
         return False
+    session = db_util.renew_session()
     query = session.query(Video).filter(Video.slug == video_name)
     if query.count() > 0:
         print "Video {0} already exists!".format(video_name)

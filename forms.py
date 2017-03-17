@@ -3,7 +3,7 @@ from wtforms import StringField
 from wtforms import PasswordField, IntegerField
 from wtforms.validators import DataRequired, EqualTo
 from wtforms import ValidationError
-from db_util import session
+import db_util
 from tpod_models import User
 import wtforms.validators
 from vatic.models import *
@@ -37,6 +37,7 @@ class DeleteVideoForm(FlaskForm):
         rv = FlaskForm.validate(self)
         if not rv:
             return False
+        session = db_util.renew_session()
         video = session.query(Video).filter(Video.id == self.video_id.data).first()
         if not video:
             self.video_id.errors.append('video not exist')
@@ -55,6 +56,7 @@ class DeleteLabelForm(FlaskForm):
         rv = FlaskForm.validate(self)
         if not rv:
             return False
+        session = db_util.renew_session()
         label = session.query(Label).filter(Label.id == self.label_id.data).first()
         if not label:
             self.label_id.errors.append('label not exist')
@@ -75,6 +77,7 @@ class EditLabelForm(FlaskForm):
         rv = FlaskForm.validate(self)
         if not rv:
             return False
+        session = db_util.renew_session()
         label = session.query(Label).filter(Label.id == self.label_id.data).first()
         if not label:
             self.label_id.errors.append('label not exist')
@@ -96,6 +99,7 @@ class AddLabelForm(FlaskForm):
         rv = FlaskForm.validate(self)
         if not rv:
             return False
+        session = db_util.renew_session()
         video = session.query(Video).filter(Video.id == self.video_id.data).first()
         if not video:
             self.video_id.errors.append('video not exist')
@@ -119,6 +123,7 @@ class LoginForm(FlaskForm):
         rv = FlaskForm.validate(self)
         if not rv:
             return False
+        session = db_util.renew_session()
         user = session.query(User).filter_by(username=self.username.data).first()
         if user is None or (not user.check_password(self.password.data)):
             self.username.errors.append('Invalid username or password')
@@ -143,4 +148,5 @@ class SignupForm(FlaskForm):
         rv = FlaskForm.validate(self)
         if not rv:
             return False
+        session = db_util.renew_session()
         user = session.query(User).filter_by(username=self.username.data).first()

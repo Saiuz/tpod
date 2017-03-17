@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, abort
 from flask_login import LoginManager, login_required, login_user, logout_user, current_user
 from flask import Flask, request, render_template, redirect, url_for, flash, send_from_directory, send_file,g, abort, Response
-from db_util import session
+import db_util
 from vatic.models import *
 import response_util
 import m_logger
@@ -35,6 +35,7 @@ def edit_label():
 def add_label():
     form = AddLabelForm(request.form)
     if form.validate():
+        session = db_util.renew_session()
         label = Label(text = form.label_name.data, videoid = form.video_id.data)
         session.add(label)
         session.commit()

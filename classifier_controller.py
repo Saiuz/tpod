@@ -2,7 +2,7 @@ import config
 import os
 import time
 from vatic.models import Video
-from db_util import session
+import db_util
 import util
 
 
@@ -18,6 +18,7 @@ def generate_image_and_label_file(video_array):
     image_file_path = config.IMAGE_LIST_PATH + timestamp + '.txt'
     label_file_path = config.IMAGE_LIST_PATH + timestamp + '.txt'
 
+    session = db_util.renew_session()
     image_list_array = []
     for video_id in video_array:
         video = session.query(Video).filter(Video.id == video_id).first()
