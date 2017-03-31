@@ -25,12 +25,21 @@ h5{
     font-weight: bold;
 }
 
+#classifier_name{
+    width: 200px;
+}
+
 #video-select{
+    width:300px;
+    margin-top: 40px;
+}
+
+#label-select{
     width:300px;
     margin-top: 40px;
 }
 
 #classifier-type-select{
     width:200px;
-    margin-top: 20px;
+    margin-top: 10px;
 }

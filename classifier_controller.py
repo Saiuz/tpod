@@ -1,29 +1,80 @@
 import config
 import os
 import time
-from vatic.models import Video
+from vatic.models import Video, Label, Box, Path
 import db_util
 import util
 
 
+'''
+format for image list:
+[
+path1
+path2
+path3
+]
+format for label list (corresponding to each line in image list):
+[
+label1, label2
+label1,
+label2,
+label1, label2
+]
+'''
 # input: a list of video id
 # output: the path of the file for that image list file
-def generate_image_and_label_file(video_array):
+def generate_image_and_label_file(video_array, label_name_array):
     if not os.path.exists(config.IMAGE_LIST_PATH):
         os.makedirs(config.IMAGE_LIST_PATH)
     if not os.path.exists(config.LABEL_LIST_PATH):
         os.makedirs(config.LABEL_LIST_PATH)
 
+    print 'specified labels ' + str(label_name_array)
     timestamp = str(long(time.time()))
     image_file_path = config.IMAGE_LIST_PATH + timestamp + '.txt'
-    label_file_path = config.IMAGE_LIST_PATH + timestamp + '.txt'
+    label_file_path = config.LABEL_LIST_PATH + timestamp + '.txt'
 
+    # label will be stored in the dict uniquely
+    label_index_dict = dict()
+    for x in range(0, len(label_name_array)):
+        label_name = label_name_array[x]
+        label_index_dict[label_name] = len(label_index_dict)
+    # generate image list file
     session = db_util.renew_session()
     image_list_array = []
+    label_list_array = []
     for video_id in video_array:
         video = session.query(Video).filter(Video.id == video_id).first()
         if video is None:
             continue
+
+        # for every video, there will be a dict to store labels related with that frame
+        frame_label_dict = dict()
+        # retrieve all labels
+        labels = session.query(Label).filter(Label.videoid == video_id).all()
+        for label in labels:
+            # if the label is in the specified label list
+            if label.text not in label_index_dict:
+                continue
+            label_index = label_index_dict[label.text]
+            print 'label in the dict ' + str(label_index)
+            # retrieve label related path
+            paths = session.query(Path).filter(Path.labelid == label.id).all()
+            for path in paths:
+                boxes = session.query(Box).filter(Box.pathid == path.id).all()
+                for box in boxes:
+                    box_frame = box.frame
+                    # insert the box into the map, key is the frame id, value is an array of label
+                    # each label is also an array containing 4 elements
+                    key = str(box_frame)
+                    item = [str(box.xtl), str(box.ytl), str(box.xbr), str(box.ybr)]
+                    if key not in frame_label_dict:
+                        frame_label_dict[key] = []
+                        for x in range(0, len(label_name_array)):
+                            frame_label_dict[key].append([])
+                    frame_label_dict[key][label_index] = item
+        print frame_label_dict
+        # then, every label is stored in corresponding frame
 
         total_frames = video.totalframes
         extract_path = video.extract_path
@@ -31,11 +82,26 @@ def generate_image_and_label_file(video_array):
             img_path = Video.getframepath(x, extract_path)
             if os.path.exists(img_path) and util.is_image_file(img_path):
                 image_list_array.append(img_path)
-    print image_list_array
+                if str(x) in frame_label_dict:
+                    label_list_array.append(generate_frame_label(frame_label_dict[str(x)]))
+                else:
+                    label_list_array.append('')
     util.write_list_to_file(image_list_array, image_file_path)
-
-
+    util.write_list_to_file(label_list_array, label_file_path)
 
     return image_file_path, label_file_path
 
+
+def generate_frame_label(labels):
+    if len(labels) == 0:
+        return ''
+    else:
+        line = ''
+        for x in range(0, len(labels)):
+            single_label = '_'.join(labels[x])
+            if x == len(labels) - 1:
+                line += single_label
+            else:
+                line += (single_label + ',')
+        return line
 

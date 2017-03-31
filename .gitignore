@@ -4,3 +4,5 @@ upload/*
 extract/*
 public/frames/*
 homographies/*
+image_list
+label_list

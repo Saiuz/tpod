@@ -67,6 +67,20 @@ def get_available_videos(user_id):
     return result
 
 
+def get_available_labels():
+    query_result = session.query(Label).all()
+    result = []
+    for label in query_result:
+        video_name = label.video.slug
+        obj = {
+            'video_name': str(video_name),
+            'name': str(label.text),
+            'id':label.id,
+        }
+        result.append(obj)
+    return result
+
+
 def get_videos_labels_of_classifier(classifier):
     videos = []
     label_map = {}

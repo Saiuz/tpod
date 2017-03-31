@@ -40,7 +40,7 @@
     <br>
    <h4> Create Classifier:</h4>
     <form id="form_create_classifier" method="POST" action="create">
-        <div class="form-group form-inline">
+        <div class="form-group">
             <label for="classifier_name">Classifier Name:</label>
             <input id="classifier_name" type="text" name="classifier_name" class="form-control"><br>
         </div>
@@ -57,6 +57,14 @@
             <select id="video-select" name="character" multiple="multiple">
             </select>
             <input id="param_videos" type="text" name="video_list" hidden>
+        </div>
+
+        <div class="form-group form-inline">
+            <label for="param_labels">Choose Labels:</label>
+
+            <select id="label-select" name="character" multiple="multiple">
+            </select>
+            <input id="param_labels" type="text" name="label_list" hidden>
         </div>
 
         <div class="form-group form-inline">
@@ -84,6 +92,13 @@
                     searchplaceholder:'Choose videos for the classifier'
                }
             });
+            $('#label-select').searchableOptionList({
+                data: 'available_labels',
+               texts:{
+                    searchplaceholder:'Choose labels for the classifier'
+               }
+            });
+
            $('#classifier-type-select').searchableOptionList({
                data: 'available_classifier_types',
                texts:{
@@ -94,6 +109,7 @@
 
 $("#form_create_classifier").submit(function(e){
     var selected_videos = $('#video-select').searchableOptionList().getSelection();
+    var selected_labels = $('#label-select').searchableOptionList().getSelection();
     var selected_network = $('#classifier-type-select').searchableOptionList().getSelection();
 
     var videos = "";
@@ -104,12 +120,23 @@ $("#form_create_classifier").submit(function(e){
             videos += (selected_videos[i].value + ",");
         }
     }
+
+    var labels = "";
+    for(var i = 0; i < selected_labels.length; i++){
+        if(i == selected_labels.length - 1){
+            labels += (selected_labels[i].value);
+        }else{
+            labels += (selected_labels[i].value + ",");
+        }
+    }
+
     var network_type;
     for(var i = 0; i < selected_network.length; i++){
         network_type = selected_network[i].value;
     }
     $('#param_videos').val(videos);
     $('#param_network_type').val(network_type);
+    $('#param_labels').val(labels);
 
     console.log(videos);
     console.log(network_type);

@@ -18,6 +18,21 @@ def list_classifier():
     return render_template('index_classifier.html', classifiers=db_helper.get_classifiers_of_user(current_user.id))
 
 
+@classifier_page.route("/available_labels", methods=["POST", "GET"])
+@login_required
+def available_labels():
+    labels = db_helper.get_available_labels()
+    ret = []
+    for label in labels:
+        obj = {
+            'type':'option',
+            'label':label['name'] + '( belongs to video ' + label['video_name'] + ' )',
+            'value':label['name'],
+        }
+        ret.append(obj)
+    return jsonify(ret)
+
+
 @classifier_page.route("/available_videos", methods=["POST", "GET"])
 @login_required
 def available_videos():
@@ -61,8 +76,11 @@ def create_classifier():
         video_list = form.video_list.data
         video_list = video_list.split(',')
         print video_list
-        image_list_file_path = controller.generate_image_file(video_list)
+        label_list = form.label_list.data
+        label_list = label_list.split(',')
+        print label_list
 
+        image_list_file_path, label_list_file_path = controller.generate_image_and_label_file(video_list, label_list)
 
         return redirect(request.referrer)
     return response_util.json_error_response(msg=str(form.errors))

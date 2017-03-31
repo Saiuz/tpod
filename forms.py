@@ -13,6 +13,7 @@ class CreateClassifierForm(FlaskForm):
     classifier_name = StringField('classifier_name', validators=[DataRequired()])
     epoch = IntegerField('epoch', validators=[DataRequired()])
     video_list = StringField('video_list', validators=[DataRequired()])
+    label_list = StringField('label_list', validators=[DataRequired()])
     network_type = IntegerField('network_type', validators=[DataRequired()])
 
     def __init__(self, *args, **kwargs):
