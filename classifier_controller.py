@@ -67,12 +67,18 @@ def generate_image_and_label_file(video_array, label_name_array):
                     # insert the box into the map, key is the frame id, value is an array of label
                     # each label is also an array containing 4 elements
                     key = str(box_frame)
-                    item = [str(box.xtl), str(box.ytl), str(box.xbr), str(box.ybr)]
+                    x1 = box.xtl
+                    y1 = box.ytl
+                    w = (box.xbr - box.xtl)
+                    h = (box.ybr - box.ytl)
+                    item = [str(x1), str(y1), str(w), str(h)]
                     if key not in frame_label_dict:
                         frame_label_dict[key] = []
+                        # each class of label will be an array
                         for x in range(0, len(label_name_array)):
                             frame_label_dict[key].append([])
-                    frame_label_dict[key][label_index] = item
+                    # under this array of that class, there would be many labels
+                    frame_label_dict[key][label_index].append(item)
         print frame_label_dict
         # then, every label is stored in corresponding frame
 
@@ -92,16 +98,22 @@ def generate_image_and_label_file(video_array, label_name_array):
     return image_file_path, label_file_path
 
 
-def generate_frame_label(labels):
-    if len(labels) == 0:
+# the basic structure: class is separated by '.' label is separated by ';' coordination is separated by ','
+def generate_frame_label(frame_labels):
+    if len(frame_labels) == 0:
         return ''
     else:
         line = ''
-        for x in range(0, len(labels)):
-            single_label = '_'.join(labels[x])
-            if x == len(labels) - 1:
-                line += single_label
-            else:
-                line += (single_label + ',')
+        # first, travel through all classes
+        for ic, item_class in enumerate(frame_labels):
+            # then, travel through labels under that class
+            if len(item_class) > 0:
+                for il, label in enumerate(item_class):
+                    str_label = ','.join(label)
+                    line += str_label
+                    if il != len(item_class) - 1:
+                        line += ';'
+            if ic != len(frame_labels) - 1:
+                line += '.'
         return line
 

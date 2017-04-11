@@ -6,9 +6,9 @@ geolocation = "" # api key for ipinfodb.com
 maxobjects = 25
 VATIC_URL_PREFIX = '/vatic'
 UPLOAD_PATH = 'upload/'
-EXTRACT_PATH = 'extract/'
-IMAGE_LIST_PATH = 'image_list/'
-LABEL_LIST_PATH = 'label_list/'
+EXTRACT_PATH = 'dataset/extract/'
+IMAGE_LIST_PATH = 'dataset/image_list/'
+LABEL_LIST_PATH = 'dataset/label_list/'
 # probably no need to mess below this line
 
 import multiprocessing
