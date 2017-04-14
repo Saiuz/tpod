@@ -53,6 +53,7 @@ def generate_image_and_label_file(video_array, label_name_array):
 
         # for every video, there will be a dict to store labels related with that frame
         frame_label_dict = dict()
+
         # retrieve all labels
         labels = session.query(Label).filter(Label.videoid == video_id).all()
         for label in labels:
@@ -80,8 +81,10 @@ def generate_image_and_label_file(video_array, label_name_array):
                         # each class of label will be an array
                         for x in range(0, len(label_name_array)):
                             frame_label_dict[key].append([])
-                    # under this array of that class, there would be many labels
-                    frame_label_dict[key][label_index].append(item)
+                    # if not duplicate, add it to the array
+                    if not check_duplicate(frame_label_dict[key][label_index], item):
+                        # under this array of that class, there would be many labels
+                        frame_label_dict[key][label_index].append(item)
         # then, every label is stored in corresponding frame
 
         total_frames = video.totalframes
@@ -92,6 +95,8 @@ def generate_image_and_label_file(video_array, label_name_array):
                 image_list_array.append(img_path)
                 if str(x) in frame_label_dict:
                     label_list_array.append(generate_frame_label(frame_label_dict[str(x)]))
+                    # print 'there are %s boxes for frame %s' % (str(len(frame_label_dict[str(x)])), str(x))
+                    # print 'the generated label line is %s' % (str(generate_frame_label(frame_label_dict[str(x)])))
                 else:
                     label_list_array.append('\n')
             else:
@@ -105,6 +110,17 @@ def generate_image_and_label_file(video_array, label_name_array):
 
     session.close()
     return image_file_path, label_file_path, label_name_path
+
+
+def check_duplicate(parent_array, new_array):
+    if len(parent_array) == 0:
+        return False
+    unique_array = []
+    for item in parent_array:
+        item_str = ','.join(item)
+        unique_array.append(item_str)
+    new_str = ','.join(new_array)
+    return new_str in unique_array
 
 
 # the basic structure: class is separated by '.' label is separated by ';' coordination is separated by ','

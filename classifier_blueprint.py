@@ -26,7 +26,7 @@ def available_labels():
     for label in labels:
         obj = {
             'type':'option',
-            'label':label['name'] + '( belongs to video ' + label['video_name'] + ' )',
+            'label': '%s (%s frames, from video %s)' % (label['name'],str(label['labeled_frame']),  label['video_name'] ),
             'value':label['name'],
         }
         ret.append(obj)

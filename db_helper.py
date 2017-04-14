@@ -7,8 +7,30 @@ def generate_label_obj(label):
     obj = {
         'name':label.text,
         'id':label.id,
+        'labeled_frame': get_labeled_frames_count(label)
     }
     return obj
+
+
+def get_labeled_frames_count(label):
+    session = db_util.renew_session()
+    frame_label_dict = dict()
+    paths = session.query(Path).filter(Path.labelid == label.id).all()
+    for path in paths:
+        boxes = session.query(Box).filter(Box.pathid == path.id).all()
+        for box in boxes:
+            box_frame = box.frame
+            # insert the box into the map, key is the frame id, value is an array of label
+            # each label is also an array containing 4 elements
+            key = str(box_frame)
+            x1 = box.xtl
+            y1 = box.ytl
+            w = (box.xbr - box.xtl)
+            h = (box.ybr - box.ytl)
+            item = [str(x1), str(y1), str(w), str(h)]
+            item_str = key + ','.join(item)
+            frame_label_dict[item_str] = True
+    return len(frame_label_dict)
 
 
 def generate_video_obj(video):
@@ -55,7 +77,6 @@ def get_video_by_id(video_id):
         return None
 
 
-
 def get_videos_of_user(user_id):
     session = db_util.renew_session()
     query_result = session.query(Video).filter(Video.owner_id == user_id).all()
@@ -90,6 +111,7 @@ def get_available_labels():
             'video_name': str(video_name),
             'name': str(label.text),
             'id':label.id,
+            'labeled_frame': get_labeled_frames_count(label)
         }
         result.append(obj)
     session.close()

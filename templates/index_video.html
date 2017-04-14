@@ -20,6 +20,7 @@
                     {% for label in video.labels %}
                         <li class="item_label list-group-item">
                             <p class="item_label_name"> Name: {{label.name}}</p>
+                            <p class="item_label_frame_count"> Labeled Frame Count: {{label.labeled_frame}} (duplicates possible)</p>
                              <form class="item_label_form item_label_form_edit form-inline" action="../label/edit" method="POST">
                                 <input hidden name="label_id" value="{{label.id}}">
                                 <div class="form-group">
@@ -32,7 +33,6 @@
                                 <input hidden name="label_id" value="{{label.id}}">
                                 <button class="btn btn-danger" type="submit">Delete label</button>
                             </form>
-
                         </li>
                     {% endfor%}
                     </ul>
