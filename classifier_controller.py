@@ -103,6 +103,7 @@ def generate_image_and_label_file(video_array, label_name_array):
     # create the labels.txt file
     util.write_list_to_file(label_name_array, label_name_path)
 
+    session.close()
     return image_file_path, label_file_path, label_name_path
 
 

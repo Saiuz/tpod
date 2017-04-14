@@ -42,7 +42,9 @@ class DeleteVideoForm(FlaskForm):
         video = session.query(Video).filter(Video.id == self.video_id.data).first()
         if not video:
             self.video_id.errors.append('video not exist')
+            session.close()
             return False
+        session.close()
         return True
 
 
@@ -61,8 +63,10 @@ class DeleteLabelForm(FlaskForm):
         label = session.query(Label).filter(Label.id == self.label_id.data).first()
         if not label:
             self.label_id.errors.append('label not exist')
+            session.close()
             return False
         session.delete(label)
+        session.close()
         return True
 
 
@@ -104,11 +108,14 @@ class AddLabelForm(FlaskForm):
         video = session.query(Video).filter(Video.id == self.video_id.data).first()
         if not video:
             self.video_id.errors.append('video not exist')
+            session.close()
             return False
         label = session.query(Label).filter(Label.videoid == self.video_id.data, Label.text == self.label_name.data).first()
         if label:
             self.label_name.errors.append('label already exist')
+            session.close()
             return False
+        session.close()
         return True
 
 
@@ -128,8 +135,10 @@ class LoginForm(FlaskForm):
         user = session.query(User).filter_by(username=self.username.data).first()
         if user is None or (not user.check_password(self.password.data)):
             self.username.errors.append('Invalid username or password')
+            session.close()
             return False
         self.user = user
+        session.close()
         return True
 
 

@@ -1,4 +1,4 @@
-from db_util import session
+import db_util
 from vatic.models import *
 from tpod_models import *
 
@@ -34,28 +34,40 @@ def get_all_job_urls(video):
 
 
 def get_labels_of_video(video_id):
+    session = db_util.renew_session()
     query_result = session.query(Label).filter(Label.videoid == video_id)
     result = []
     for label in query_result:
         result.append(generate_label_obj(label))
+    session.close()
     return result
 
 
 def get_video_by_id(video_id):
+    session = db_util.renew_session()
     query_result = session.query(Video).filter(Video.id == video_id).first()
     if query_result:
-        return generate_video_obj(query_result)
+        ret = generate_video_obj(query_result)
+        session.close()
+        return ret
+    else:
+        session.close()
+        return None
+
 
 
 def get_videos_of_user(user_id):
+    session = db_util.renew_session()
     query_result = session.query(Video).filter(Video.owner_id == user_id).all()
     result = []
     for video in query_result:
         result.append(generate_video_obj(video))
+    session.close()
     return result
 
 
 def get_available_videos(user_id):
+    session = db_util.renew_session()
     query_result = session.query(Video).filter(Video.owner_id == user_id).all()
     result = []
     for video in query_result:
@@ -64,10 +76,12 @@ def get_available_videos(user_id):
             'id':video.id,
         }
         result.append(obj)
+    session.close()
     return result
 
 
 def get_available_labels():
+    session = db_util.renew_session()
     query_result = session.query(Label).all()
     result = []
     for label in query_result:
@@ -78,10 +92,12 @@ def get_available_labels():
             'id':label.id,
         }
         result.append(obj)
+    session.close()
     return result
 
 
 def get_videos_labels_of_classifier(classifier):
+    session = db_util.renew_session()
     videos = []
     label_map = {}
     for video in classifier.videos:
@@ -103,10 +119,12 @@ def get_videos_labels_of_classifier(classifier):
     labels = []
     for key in label_map.keys():
         labels.append(label_map[key])
+    session.close()
     return videos, labels
 
 
 def get_classifiers_of_user(user_id):
+    session = db_util.renew_session()
     query_result = session.query(Classifier).filter(Classifier.owner_id == user_id).all()
     result = []
     for classifier in query_result:
@@ -119,6 +137,7 @@ def get_classifiers_of_user(user_id):
         }
 
         result.append(obj)
+    session.close()
     return result
 
 

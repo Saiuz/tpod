@@ -32,7 +32,9 @@ def index():
 @video_page.route("/list", methods=["GET"])
 @login_required
 def list_video():
-    return render_template('index_video.html', videos = db_helper.get_videos_of_user(current_user.id))
+    videos = db_helper.get_videos_of_user(current_user.id)
+    print 'get %s videos for user %s ' % (str(len(videos)), str(current_user.id))
+    return render_template('index_video.html', videos = videos)
 
 
 @video_page.route("/delete", methods=["POST"])
