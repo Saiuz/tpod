@@ -28,11 +28,14 @@ def generate_image_and_label_file(video_array, label_name_array):
         os.makedirs(config.IMAGE_LIST_PATH)
     if not os.path.exists(config.LABEL_LIST_PATH):
         os.makedirs(config.LABEL_LIST_PATH)
+    if not os.path.exists(config.LABEL_NAME_PATH):
+        os.makedirs(config.LABEL_NAME_PATH)
 
     print 'specified labels ' + str(label_name_array)
     timestamp = str(long(time.time()))
     image_file_path = config.IMAGE_LIST_PATH + timestamp + '.txt'
     label_file_path = config.LABEL_LIST_PATH + timestamp + '.txt'
+    label_name_path = config.LABEL_NAME_PATH + timestamp + '.txt'
 
     # label will be stored in the dict uniquely
     label_index_dict = dict()
@@ -79,23 +82,28 @@ def generate_image_and_label_file(video_array, label_name_array):
                             frame_label_dict[key].append([])
                     # under this array of that class, there would be many labels
                     frame_label_dict[key][label_index].append(item)
-        print frame_label_dict
         # then, every label is stored in corresponding frame
 
         total_frames = video.totalframes
         extract_path = video.extract_path
-        for x in range(0, total_frames):
+        for x in range(0, total_frames + 1):
             img_path = Video.getframepath(x, extract_path)
             if os.path.exists(img_path) and util.is_image_file(img_path):
                 image_list_array.append(img_path)
                 if str(x) in frame_label_dict:
                     label_list_array.append(generate_frame_label(frame_label_dict[str(x)]))
                 else:
-                    label_list_array.append('')
+                    label_list_array.append('\n')
+            else:
+                print 'path not exist %s the index is %s ' % (str(image_file_path), str(x))
+    print 'total length of image %s, length of label %s, total frames %s' % (str(len(image_list_array)), str(len(label_list_array)), str(total_frames))
     util.write_list_to_file(image_list_array, image_file_path)
     util.write_list_to_file(label_list_array, label_file_path)
 
-    return image_file_path, label_file_path
+    # create the labels.txt file
+    util.write_list_to_file(label_name_array, label_name_path)
+
+    return image_file_path, label_file_path, label_name_path
 
 
 # the basic structure: class is separated by '.' label is separated by ';' coordination is separated by ','

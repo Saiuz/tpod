@@ -34,9 +34,9 @@ def write_list_to_file(array, file_path):
     f = open(file_path, 'w+')
     for i in range(0, len(array)):
         item = array[i]
-        if i == len(array) - 1:
-            f.write(str(item))
-        else:
-            f.write(str(item) + '\n')
+        # if i == len(array) - 1:
+        #     f.write(str(item))
+        # else:
+        f.write(str(item) + '\n')
     f.close()
 

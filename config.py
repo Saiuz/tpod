@@ -9,6 +9,7 @@ UPLOAD_PATH = 'upload/'
 EXTRACT_PATH = 'dataset/extract/'
 IMAGE_LIST_PATH = 'dataset/image_list/'
 LABEL_LIST_PATH = 'dataset/label_list/'
+LABEL_NAME_PATH = 'dataset/label_name/'
 # probably no need to mess below this line
 
 import multiprocessing

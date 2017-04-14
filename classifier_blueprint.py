@@ -80,7 +80,7 @@ def create_classifier():
         label_list = label_list.split(',')
         print label_list
 
-        image_list_file_path, label_list_file_path = controller.generate_image_and_label_file(video_list, label_list)
+        image_list_file_path, label_list_file_path, label_name_file_path = controller.generate_image_and_label_file(video_list, label_list)
 
         return redirect(request.referrer)
     return response_util.json_error_response(msg=str(form.errors))
