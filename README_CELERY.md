@@ -8,3 +8,9 @@ In short, it has two components:
 At the producer side, I will call it in the flask app when user is creating classifiers of running detection tasks
 
 At the listener side, we should start a server to listen to the task
+
+
+### How to run the Task consumer
+* Under the director 'celery_task'
+* sudo celery -A Tasks worker --loglevel=info
+* sudo is necessary, since we are launching docker

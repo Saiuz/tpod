@@ -1,12 +1,9 @@
 import os
 
 import numpy as np
-import vision
-from PIL import Image
 from sqlalchemy import Column, Integer, Float, String, Boolean, DateTime, BigInteger
 from sqlalchemy import ForeignKey, Table, PickleType
 from sqlalchemy.orm import relationship, backref
-from vision.track.interpolation import LinearFill
 from vatic.models import Video
 from flask_login.mixins import UserMixin
 from vatic.meta_table import video_evaluation_association_table, classifier_evaluation_association_table

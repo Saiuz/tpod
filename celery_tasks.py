@@ -1,0 +1,128 @@
+from celery import Celery
+from celery import Task
+from celery.utils.log import get_task_logger
+import datetime
+import subprocess
+import time
+import psutil
+import util
+import thread
+import sys
+from celery_model import TaskStatusRecord
+import db_util
+
+app = Celery('tpod_task', broker='amqp://localhost', backend='rpc://localhost')
+logger = get_task_logger('tpod')
+
+TASK_TYPE_NONE = 1
+TASK_TYPE_TRAIN = 2
+TASK_TYPE_TEST = 3
+
+STATE_NONE = 'NONE'
+STATE_START = 'START'
+STATE_PROGRESS = 'PROGRESS'
+STATE_FINISH = 'FINISH'
+
+
+class TPODTask(Task):
+
+    def __init__(self):
+        self.task_type = TASK_TYPE_NONE
+        self.pid = None
+        self.proc = None
+        self.counter = 0
+        self.running = True
+        self.monitor_rate = 1
+        self.task_id = None
+        self.classifier_id = None
+        self.status = None
+
+    def __call__(self, *args, **kwargs):
+        logger.info('Starting Task: {0.name},type:{0.task_type},[{0.request.id}]'.format(self))
+        self.task_id = self.request.id
+        return super(TPODTask, self).__call__(*args, **kwargs)
+
+    def init_message_callback(self):
+        def register_callback_async():
+            channel = util.init_communication_channel(self.task_id)
+
+            def callback(ch, method, properties, body):
+                print(" [x] Received %r" % body)
+
+            logger.info('Registered callback with task id {0} '.format(self))
+            self.consumer_tag = util.register_message_callback(callback, channel, self.task_id)
+        thread.start_new_thread(register_callback_async, ())
+
+    def get_process_status(self):
+        print 'updating the status of task %s, with pid %s ' % (str(self.task_id), str(self.pid))
+        ret = {
+            'resource_utility': {
+                'process_cpu_percentage': '0',
+                'total_memory': '0',
+                'total_memory_used': '0',
+                'total_memory_percentage': '0',
+                'total_gpu_memory': '0',
+                'total_gpu_memory_used': '0',
+                'process_memory_percentage': '0',
+                'process_gpu_memory_used': '',
+            },
+            'status': self.status
+        }
+        if self.pid is None:
+            return ret
+
+        if self.proc is None:
+            self.proc = psutil.Process(self.pid)
+
+        v_mem_info = psutil.virtual_memory()
+        gpu_total_used, gpu_total, gpu_process_usage = util.get_gpu_info(self.pid)
+        ret['resource_utility']['process_cpu_percentage'] = self.proc.cpu_percent(),
+        ret['resource_utility']['total_memory']= v_mem_info.total
+        ret['resource_utility']['total_memory_used']= v_mem_info.used
+        ret['resource_utility']['total_memory_percentage']= v_mem_info.percent
+        ret['resource_utility']['total_gpu_memory']= gpu_total
+        ret['resource_utility']['total_gpu_memory_used']= gpu_total_used
+        ret['resource_utility']['process_memory_percentage']= self.proc.memory_percent()
+        ret['resource_utility']['process_gpu_memory_used']= gpu_process_usage
+        return str(ret)
+
+    def update_status(self, state):
+        self.status = state
+        content = str(self.get_process_status())
+        session = db_util.renew_session()
+        status = TaskStatusRecord(task_id = self.task_id, classifier_id = self.classifier_id)
+        status.update_time = datetime.datetime.now()
+        status.body = content
+        session.add(status)
+        session.commit()
+        session.close()
+
+
+@app.task(bind=True, base=TPODTask)
+def train_task(self, classifier_id, train_set_name, epoch, weights):
+    self.task_type = TASK_TYPE_TRAIN
+    self.classifier_id = classifier_id
+
+    self.update_status(STATE_START)
+    self.init_message_callback()
+    # example command inside the docker
+    # /usr/bin/python tools/tpod_train_net.py --weights /VGG_CNN_M_1024.v2.caffemodel --output_dir . --iter 2000 --train_set_name 1492198
+
+    proc = subprocess.Popen(['nvidia-docker', 'run', '--name', str(self.task_id), 'nvidia/cuda', 'nvidia-smi'])
+    self.pid = proc.pid
+    print 'launching training task with pid %s train set %s, epoch %s, weights %s' % (str(self.pid), str(train_set_name), str(epoch), str(weights))
+
+    # begin monitoring the status of the process
+    while self.running:
+        self.update_status(STATE_PROGRESS)
+        time.sleep(1/float(self.monitor_rate))
+        self.counter += 1
+        if self.counter == 10:
+            self.running = False
+    ## TODO: might need to kill children process too
+    proc.terminate()
+    self.update_status(STATE_FINISH)
+
+
+
+

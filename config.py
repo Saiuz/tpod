@@ -12,6 +12,8 @@ LABEL_LIST_PATH = 'dataset/label_list/'
 LABEL_NAME_PATH = 'dataset/label_name/'
 # probably no need to mess below this line
 
+NETWORK_TYPE_FASTER_RCNN = 'faster_rcnn'
+
 import multiprocessing
 processes = multiprocessing.cpu_count()
 

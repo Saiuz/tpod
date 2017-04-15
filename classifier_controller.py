@@ -1,10 +1,14 @@
-import config
+import ntpath
 import os
 import time
-from vatic.models import Video, Label, Box, Path
+
+import config
 import db_util
 import util
-
+from tpod_models import Classifier
+from vatic.models import Video, Label, Box, Path
+from celery_tasks import train_task
+import random
 
 '''
 format for image list:
@@ -142,4 +146,90 @@ def generate_frame_label(frame_labels):
             if ic != len(frame_labels) - 1:
                 line += '.'
         return line
+
+
+def delete_classifier(classifier_id):
+    # several necessary steps:
+    '''
+    1. db entity
+    2. label_list, image_list, label_name
+    3. container, image
+    '''
+    session = db_util.renew_session()
+    classifier = session.query(Classifier).filter(Classifier.id == classifier_id).first()
+    session.delete(classifier)
+    session.commit()
+    session.close()
+
+
+def create_new_classifier(current_user, classifier_name, epoch, video_list, label_list):
+    image_list_file_path, label_list_file_path, label_name_file_path = generate_image_and_label_file(video_list, label_list)
+    session = db_util.renew_session()
+    classifier = Classifier(name=classifier_name, owner_id=current_user.id)
+    # add videos
+    classifier.training_image_list_file_path = image_list_file_path
+    classifier.training_label_list_file_path = label_list_file_path
+    classifier.training_label_name_file_path = label_name_file_path
+
+    classifier.model_name = classifier_name
+    classifier.epoch = epoch
+    classifier.network_type = config.NETWORK_TYPE_FASTER_RCNN
+
+    session.add(classifier)
+    session.flush()
+
+    # get id of the classifier
+    classifier_id = classifier.id
+
+    print 'generate classifier with id %s ' % str(classifier_id)
+
+    # prepare training
+    classifier.training_start_time = int(time.time() * 1000)
+    train_set_name = os.path.splitext(ntpath.basename(str(image_list_file_path)))[0]
+
+    task_id = launch_training_docker_task(classifier_id, train_set_name, epoch)
+    print 'launched the docker with task id %s ' % str(task_id)
+    classifier.task_id = task_id
+    session.commit()
+    session.close()
+
+
+def launch_training_docker_task(classifier_id, train_set_name, epoch, weights=None):
+    if weights is None:
+        weights = '/VGG_CNN_M_1024.v2.caffemodel'
+    task_id = str(classifier_id) + '-' + str(random.getrandbits(32))
+    print 'classifier id %s, train set %s, epoch %s, weight %s ' % (str(classifier_id), str(train_set_name), str(epoch), str(weights))
+    train_task.apply_async((classifier_id, train_set_name, epoch, weights), task_id=task_id)
+    return task_id
+
+
+#    id              = Column(Integer, primary_key = True)
+#    name            = Column(String(250))
+#    owner_id = Column(Integer, ForeignKey("users.id"))
+#    # one to many
+#    videos = relationship(Video)
+#    # one to many
+#    children = relationship("Classifier")
+#    parent_id = Column(Integer, ForeignKey("classifiers.id"))
+#    # training images
+#    training_image_list_file_path  = Column(String(550))
+#    training_label_list_file_path  = Column(String(550))
+#    training_label_name_file_path  = Column(String(550))
+#    epoch   = Column(Integer, default=0)
+#    # a string to indicate the network type: ['Fast_RCNN', 'mxnet']
+#    network_type  = Column(String(250))
+#    # the name of model, specified by the user
+#    model_name  = Column(String(250))
+#    # training status: [(0, none), (1, waiting), (2, training), (3, finished)]
+#    task_id   = Column(String(250))
+#    training_status   = Column(Integer, default=0)
+#    training_start_time   = Column(BigInteger)
+#    training_end_time   = Column(BigInteger)
+#    # many to many
+#    evaluation_sets = relationship("EvaluationSet", secondary=classifier_evaluation_association_table, back_populates='classifiers')
+#    container_id   = Column(String(250))
+#    image_id   = Column(String(250))
+
+
+
 

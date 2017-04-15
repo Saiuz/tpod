@@ -58,7 +58,9 @@ def delete_video(video_id):
             session.delete(segment)
         session.delete(video)
         session.commit()
+        session.close()
         return True
+    session.close()
     return False
 
 

@@ -7,8 +7,7 @@
         {% for classifier in classifiers %}
         <li class="list-group-item">
             <div class="item_classifier">
-                <h4 class="text_video_name"> Classifier Name: {{video.name}}</h4>
-
+                <h4 class="text_video_name"> Classifier Name: {{classifier.name}}</h4>
                 <div class="item_classifier_info">
                     <h5> Videos:</h5>
                     <ul class="list_videos list-group">
@@ -30,7 +29,7 @@
 
                  </div>
                  <form class="item_delete_classifier" action="delete" method="POST">
-                      <input hidden name="classifier_id" value="{{video.id}}">
+                      <input hidden name="classifier_id" value="{{classifier.id}}">
                       <button class="btn btn-danger" type="submit">Delete Classifier</button>
                  </form>
             </div>

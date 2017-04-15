@@ -4,7 +4,7 @@ from flask import Flask, request, render_template, session, redirect, url_for, f
 from flask import jsonify
 import db_util
 import db_helper
-from forms import CreateClassifierForm
+from forms import CreateClassifierForm, DeleteClassifierForm
 import response_util
 import classifier_controller as controller
 
@@ -63,7 +63,11 @@ def available_classifier_types():
 @classifier_page.route("/delete", methods=["POST"])
 @login_required
 def delete_classifier():
-    return Response('<p>Delete classifier</p>')
+    form = DeleteClassifierForm(request.form)
+    if form.validate():
+        controller.delete_classifier(form.classifier_id.data)
+        return redirect(request.referrer)
+    return response_util.json_error_response(msg=str(form.errors))
 
 
 @classifier_page.route("/create", methods=["POST"])
@@ -71,6 +75,7 @@ def delete_classifier():
 def create_classifier():
     form = CreateClassifierForm(request.form)
     if form.validate():
+        classifier_name = form.classifier_name.data
         epoch = form.epoch.data
         network_type = form.network_type.data
         video_list = form.video_list.data
@@ -80,7 +85,7 @@ def create_classifier():
         label_list = label_list.split(',')
         print label_list
 
-        image_list_file_path, label_list_file_path, label_name_file_path = controller.generate_image_and_label_file(video_list, label_list)
+        controller.create_new_classifier(current_user, classifier_name,epoch, video_list, label_list)
 
         return redirect(request.referrer)
     return response_util.json_error_response(msg=str(form.errors))

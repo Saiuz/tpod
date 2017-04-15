@@ -4,9 +4,30 @@ from wtforms import PasswordField, IntegerField
 from wtforms.validators import DataRequired, EqualTo
 from wtforms import ValidationError
 import db_util
-from tpod_models import User
+from tpod_models import User, Classifier
 import wtforms.validators
 from vatic.models import *
+
+
+class DeleteClassifierForm(FlaskForm):
+    classifier_id = StringField('classifier_id', validators=[DataRequired()])
+
+    def __init__(self, *args, **kwargs):
+        kwargs['csrf_enabled'] = False
+        FlaskForm.__init__(self, *args, **kwargs)
+
+    def validate(self):
+        rv = FlaskForm.validate(self)
+        if not rv:
+            return False
+        session = db_util.renew_session()
+        classifier = session.query(Classifier).filter(Classifier.id == self.classifier_id.data).first()
+        if not classifier:
+            self.classifier_id.errors.append('classifier not exist')
+            session.close()
+            return False
+        session.close()
+        return True
 
 
 class CreateClassifierForm(FlaskForm):
