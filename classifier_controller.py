@@ -62,6 +62,7 @@ def generate_image_and_label_file(video_array, label_name_array):
                 continue
             label_index = label_index_dict[label.text]
             print 'label in the dict ' + str(label_index)
+            print 'label name ' + str(label.text)
             # retrieve label related path
             paths = session.query(Path).filter(Path.labelid == label.id).all()
             for path in paths:

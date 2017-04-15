@@ -14,13 +14,22 @@ from flask_bootstrap import Bootstrap
 import response_util
 import db_util
 
-session = db_util.session
+from flask_script import Manager
+from flask_migrate import Migrate, MigrateCommand
+
 
 app = Flask(__name__, static_url_path='/static', template_folder='/templates')
 app.register_blueprint(vatic_page)
 app.register_blueprint(video_page)
 app.register_blueprint(label_page)
 app.register_blueprint(classifier_page)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://vatic:vatic@localhost/vatic'
+
+migrate = Migrate(app, db_util.Base)
+
+manager = Manager(app)
+manager.add_command('db', MigrateCommand)
 
 # bootstrap
 Bootstrap(app)
@@ -37,7 +46,6 @@ login_manager.login_view = "login"
 
 @login_manager.user_loader
 def load_user(id):
-    global session
     session = db_util.renew_session()
     return session.query(User).filter(User.id == id).first()
 
@@ -105,6 +113,9 @@ def signup():
             return Response('Registered')
     return redirect(url_for('login'))
 
+
+if __name__ == '__main__':
+    manager.run()
 
 
 

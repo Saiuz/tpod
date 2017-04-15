@@ -47,8 +47,14 @@ flask
 simplejson
 
 
+# Q & A
+=========================
 
 
+
+## What if I want to change the database model? 
+1. Make the change
+2. (Under the tpod root folder) python app.py db migrate 
 
 
 
