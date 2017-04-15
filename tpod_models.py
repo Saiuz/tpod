@@ -39,7 +39,7 @@ class Classifier(Base):
     __tablename__   = "classifiers"
 
     id              = Column(Integer, primary_key = True)
-    name            = Column(String(250), index = True)
+    name            = Column(String(250))
 
     owner_id = Column(Integer, ForeignKey("users.id"))
 
@@ -53,8 +53,8 @@ class Classifier(Base):
     # training images
     training_image_list_file_path  = Column(String(550))
     training_label_list_file_path  = Column(String(550))
+    training_label_name_file_path  = Column(String(550))
     epoch   = Column(Integer, default=0)
-
 
     # a string to indicate the network type: ['Fast_RCNN', 'mxnet']
     network_type  = Column(String(250))
@@ -63,6 +63,7 @@ class Classifier(Base):
     model_name  = Column(String(250))
 
     # training status: [(0, none), (1, waiting), (2, training), (3, finished)]
+    task_id   = Column(String(250))
     training_status   = Column(Integer, default=0)
     training_start_time   = Column(BigInteger)
     training_end_time   = Column(BigInteger)
@@ -71,6 +72,7 @@ class Classifier(Base):
     evaluation_sets = relationship("EvaluationSet", secondary=classifier_evaluation_association_table, back_populates='classifiers')
 
     container_id   = Column(String(250))
+    image_id   = Column(String(250))
 
 
 class EvaluationSet(Base):
