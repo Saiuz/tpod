@@ -10,6 +10,7 @@ import thread
 import sys
 from celery_model import TaskStatusRecord
 import db_util
+import docker
 
 app = Celery('tpod_task', broker='amqp://localhost', backend='rpc://localhost')
 logger = get_task_logger('tpod')
@@ -30,12 +31,12 @@ class TPODTask(Task):
         self.task_type = TASK_TYPE_NONE
         self.pid = None
         self.proc = None
-        self.counter = 0
-        self.running = True
         self.monitor_rate = 1
         self.task_id = None
         self.classifier_id = None
         self.status = None
+        self.container = None
+        self.last_read_log_time = None
 
     def __call__(self, *args, **kwargs):
         logger.info('Starting Task: {0.name},type:{0.task_type},[{0.request.id}]'.format(self))
@@ -66,7 +67,8 @@ class TPODTask(Task):
                 'process_memory_percentage': '0',
                 'process_gpu_memory_used': '',
             },
-            'status': self.status
+            'status': self.status,
+            'container_status': None,
         }
         if self.pid is None:
             return ret
@@ -84,7 +86,22 @@ class TPODTask(Task):
         ret['resource_utility']['total_gpu_memory_used']= gpu_total_used
         ret['resource_utility']['process_memory_percentage']= self.proc.memory_percent()
         ret['resource_utility']['process_gpu_memory_used']= gpu_process_usage
+        if self.container is not None:
+            ret['container_status'] = self.container.status
+            print 'conntainer status ' + str(self.container.status)
         return str(ret)
+
+    def read_logs(self):
+        try:
+            if self.last_read_log_time is None:
+                log = self.container.logs(timestamps=True)
+            else:
+                log = self.container.logs(timestamps=True, since=self.last_read_log_time)
+            self.last_read_log_time = int(time.time())
+            print log
+            return log
+        except Exception as e:
+            print e
 
     def update_status(self, state):
         self.status = state
@@ -107,19 +124,51 @@ def train_task(self, classifier_id, train_set_name, epoch, weights):
     self.init_message_callback()
     # example command inside the docker
     # /usr/bin/python tools/tpod_train_net.py --weights /VGG_CNN_M_1024.v2.caffemodel --output_dir . --iter 2000 --train_set_name 1492198
+    docker_name = str(self.task_id)
 
-    proc = subprocess.Popen(['nvidia-docker', 'run', '--name', str(self.task_id), 'nvidia/cuda', 'nvidia-smi'])
+    # cmd = '/usr/bin/python tools/tpod_train_net.py --weights %s --output_dir . --iter %s --train_set_name %s' % \
+    #       (str(weights), str(epoch), str(train_set_name))
+    # proc = subprocess.Popen(['nvidia-docker', 'run', '--name', docker_name, 'nvidia/cuda', 'nvidia-smi'])
+
+    docker_data_volume = '/home/suanmiao/workspace/tpod/dataset/:/dataset'
+    image_name = 'faster-rcnn-base'
+    proc = subprocess.Popen(['nvidia-docker', 'run', '-v', docker_data_volume, '--name', docker_name,
+                             image_name, '/usr/bin/python', 'tools/tpod_train_net.py', '--weights', str(weights),
+                             '--output_dir', '.', '--iter', str(epoch), '--train_set_name', str(train_set_name)])
+    # bind the docker api
+    client = docker.from_env()
+
+    # wait for the docker to launch
+    time.sleep(3)
+    try:
+        self.container = client.containers.get(docker_name)
+    except Exception as e:
+        print 'attach container error: ' + str(e)
+        proc.terminate()
+        self.update_status(STATE_FINISH)
+
+    # if self.container.status == 'exited':
+    # self.container.start()
+    # self.container.exec_run(cmd)
+
     self.pid = proc.pid
-    print 'launching training task with pid %s train set %s, epoch %s, weights %s' % (str(self.pid), str(train_set_name), str(epoch), str(weights))
-
+    print 'launching training task with pid %s train set %s, epoch %s, weights %s' % (str(self.pid),
+                                                                                      str(train_set_name), str(epoch), str(weights))
     # begin monitoring the status of the process
-    while self.running:
+    while self.container.status == 'running':
+        self.read_logs()
         self.update_status(STATE_PROGRESS)
         time.sleep(1/float(self.monitor_rate))
-        self.counter += 1
-        if self.counter == 10:
-            self.running = False
-    ## TODO: might need to kill children process too
+
+        # check finish
+
+    commit_message = 'commit from task %s, at time %s ' %(str(self.task_id), str(datetime.datetime.now()))
+    self.container.commit(author='tpod_task', message= commit_message, repository= docker_name)
+    if self.container.status == 'exited':
+        print 'the container is exited, we will remove the container'
+        # remove the container
+        self.container.remove()
+
     proc.terminate()
     self.update_status(STATE_FINISH)
 
