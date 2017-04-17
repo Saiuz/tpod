@@ -4,7 +4,7 @@ import numpy as np
 from sqlalchemy import Column, Integer, Float, String, Boolean, DateTime, BigInteger
 from sqlalchemy import ForeignKey, Table, PickleType
 from sqlalchemy.orm import relationship, backref
-from vatic.models import Video
+from vatic.models import Video, Label
 from flask_login.mixins import UserMixin
 from vatic.meta_table import video_evaluation_association_table, classifier_evaluation_association_table
 
@@ -24,7 +24,6 @@ class User(Base, UserMixin):
     # one to many
     classifiers = relationship('Classifier')
 
-
     def get_id(self):
         return self.id
 
@@ -42,6 +41,8 @@ class Classifier(Base):
 
     # one to many
     videos = relationship(Video)
+    # it's stored as string array, since there is no reference need
+    labels = Column(String(250))
     # one to many
     children = relationship("Classifier")
 

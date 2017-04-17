@@ -10,24 +10,25 @@ from vatic.models import Video, Label, Box, Path
 from celery_tasks import train_task
 import random
 
-'''
-format for image list:
-[
-path1
-path2
-path3
-]
-format for label list (corresponding to each line in image list):
-[
-label1, label2
-label1,
-label2,
-label1, label2
-]
-'''
-# input: a list of video id
-# output: the path of the file for that image list file
+
 def generate_image_and_label_file(video_array, label_name_array):
+    # input: a list of video id
+    # output: the path of the file for that image list file
+    '''
+    format for image list:
+    [
+    path1
+    path2
+    path3
+    ]
+    format for label list (corresponding to each line in image list):
+    [
+    label1, label2
+    label1,
+    label2,
+    label1, label2
+    ]
+    '''
     if not os.path.exists(config.IMAGE_LIST_PATH):
         os.makedirs(config.IMAGE_LIST_PATH)
     if not os.path.exists(config.LABEL_LIST_PATH):
@@ -175,12 +176,18 @@ def create_new_classifier(current_user, classifier_name, epoch, video_list, labe
     classifier.epoch = epoch
     classifier.network_type = config.NETWORK_TYPE_FASTER_RCNN
 
+    # add these labels and videos to the classifier
+    for video_id in video_list:
+        video = session.query(Video).filter(Video.id == video_id).first()
+        if video:
+            classifier.videos.append(video)
+    classifier.labels = ','.join(label_list)
+
     session.add(classifier)
     session.flush()
 
     # get id of the classifier
     classifier_id = classifier.id
-
     print 'generate classifier with id %s ' % str(classifier_id)
 
     # prepare training
@@ -202,6 +209,9 @@ def launch_training_docker_task(classifier_id, train_set_name, epoch, weights=No
     train_task.apply_async((classifier_id, train_set_name, epoch, weights), task_id=task_id)
     return task_id
 
+# def get_latest_task_status(classifier_id):
+    
+  
 
 #    id              = Column(Integer, primary_key = True)
 #    name            = Column(String(250))

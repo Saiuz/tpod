@@ -39,7 +39,12 @@
                </th>
                 <th>Status</th>
                 <th  class="table_center">Export</th>
-                <th  class="table_center">Delete</th>
+                <th  class="table_center">
+                  <form class="item_delete_classifier" action="delete" method="POST">
+                      <input hidden name="classifier_id" value="{{classifier.id}}">
+                      <button class="btn btn-danger" type="submit">Delete Classifier</button>
+                 </form>
+                </th>
             </tr>
         </tbody>
         {% endfor%}
