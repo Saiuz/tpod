@@ -22,6 +22,11 @@
     margin-left: 30px;
 }
 
+
+.input_label_add{
+    width: 100px !important;
+}
+
 .item_video_info{
     padding-left: 30px;
 }
@@ -44,15 +49,27 @@ h5{
 }
 
 .item_delete_video{
-    margin-left: 30px;
-    margin-top: 20px;
+    margin-top: 10px;
 }
 
 .label_edit{
-    min-width:300px;
+    font-size: 10px;
+    min-width:250px;
 }
 
 .label_edit_button{
     visibility: hidden;
     width: 0px;
+}
+
+.table_center{
+    text-align:center;
+}
+
+.label_add{
+    margin-top: 10px;
+}
+
+.item_label_frame_count{
+    font-size: 12px;
 }

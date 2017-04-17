@@ -3,40 +3,85 @@
 
 {% block page_content %}
 <div class="container" id="classifier_container">
-    <ul id="list_classifier" class="list-group">
+
+    <table class="table table_classifier">
+        <thead>
+            <tr>
+                <th  class="table_center">Classifier Name</th>
+                <th  class="table_center">Videos</th>
+                <th  class="table_center">Labels</th>
+                <th  class="table_center">Status</th>
+                <th  class="table_center">Export</th>
+                <th  class="table_center">Delete</th>
+            </tr>
+        </thead>
+        <tbody>
         {% for classifier in classifiers %}
-        <li class="list-group-item">
-            <div class="item_classifier">
-                <h4 class="text_video_name"> Classifier Name: {{classifier.name}}</h4>
-                <div class="item_classifier_info">
-                    <h5> Videos:</h5>
-                    <ul class="list_videos list-group">
+             <tr>
+                <th  class="table_center">{{classifier.name}}</th>
+                <th>
+                     <ul class="list_videos list-group">
                     {% for video in classifier.videos %}
                         <li class="item_video list-group-item">
                             <p class="item_video_name"> Name: {{video.name}}</p>
                         </li>
                     {% endfor%}
                     </ul>
-
-                    <h5> Labels:</h5>
+                </th>
+                <th>
                     <ul class="list_labels list-group">
-                    {% for video in classifier.labels %}
+                    {% for label in classifier.labels %}
                         <li class="item_label list-group-item">
                             <p class="item_video_name"> Name: {{label.name}}</p>
                         </li>
                     {% endfor%}
                     </ul>
-
-                 </div>
-                 <form class="item_delete_classifier" action="delete" method="POST">
-                      <input hidden name="classifier_id" value="{{classifier.id}}">
-                      <button class="btn btn-danger" type="submit">Delete Classifier</button>
-                 </form>
-            </div>
-        </li>
+               </th>
+                <th>Status</th>
+                <th  class="table_center">Export</th>
+                <th  class="table_center">Delete</th>
+            </tr>
+        </tbody>
         {% endfor%}
-    </ul>
-    <br>
+    </table>
+
+
+    <!--<ul id="list_classifier" class="list-group">-->
+        <!--{% for classifier in classifiers %}-->
+        <!--<li class="list-group-item">-->
+            <!--<div class="item_classifier">-->
+                <!--<h4 class="text_video_name"> Classifier Name: {{classifier.name}}</h4>-->
+                <!--<div class="item_classifier_info">-->
+                    <!--<h5> Videos:</h5>-->
+                    <!--<ul class="list_videos list-group">-->
+                    <!--{% for video in classifier.videos %}-->
+                        <!--<li class="item_video list-group-item">-->
+                            <!--<p class="item_video_name"> Name: {{video.name}}</p>-->
+                        <!--</li>-->
+                    <!--{% endfor%}-->
+                    <!--</ul>-->
+
+                    <!--<h5> Labels:</h5>-->
+                    <!--<ul class="list_labels list-group">-->
+                    <!--{% for video in classifier.labels %}-->
+                        <!--<li class="item_label list-group-item">-->
+                            <!--<p class="item_video_name"> Name: {{label.name}}</p>-->
+                        <!--</li>-->
+                    <!--{% endfor%}-->
+                    <!--</ul>-->
+
+                 <!--</div>-->
+                 <!--<form class="item_delete_classifier" action="delete" method="POST">-->
+                      <!--<input hidden name="classifier_id" value="{{classifier.id}}">-->
+                      <!--<button class="btn btn-danger" type="submit">Delete Classifier</button>-->
+                 <!--</form>-->
+            <!--</div>-->
+        <!--</li>-->
+        <!--{% endfor%}-->
+    <!--</ul>-->
+    <!--<br>-->
+    <div id="holder_create_classifier">
+
    <h4> Create Classifier:</h4>
     <form id="form_create_classifier" method="POST" action="create">
         <div class="form-group">
@@ -73,6 +118,7 @@
 
         <button class="btn btn-primary" type="submit">Submit</button>
     </form>
+    </div>
 </div>
 {% endblock %}
 
