@@ -163,6 +163,7 @@ def load(video_name, video_path_output, labels, orig_file_path, user_id, segment
             if labeltext[0] == "~":
                 if lastlabel is None:
                     print "Cannot assign an attribute without a label!"
+                    session.close()
                     return
                 labeltext = labeltext[1:]
                 attribute = Attribute(text = labeltext)
@@ -180,6 +181,7 @@ def load(video_name, video_path_output, labels, orig_file_path, user_id, segment
                 labelcache[labeltext] = label
                 lastlabel = label
         session.commit()
+        session.close()
         return
     homographydir = os.path.abspath(os.path.join("homographies", video_name))
     if not os.path.isdir(homographydir):
@@ -218,6 +220,7 @@ def load(video_name, video_path_output, labels, orig_file_path, user_id, segment
         if labeltext[0] == "~":
             if lastlabel is None:
                 print "Cannot assign an attribute without a label!"
+                session.close()
                 return
             labeltext = labeltext[1:]
             attribute = Attribute(text = labeltext)
@@ -257,6 +260,7 @@ def load(video_name, video_path_output, labels, orig_file_path, user_id, segment
         session.add(segment)
         session.add(job)
     session.commit()
+    session.close()
 
 
 def image_exist(img_path):

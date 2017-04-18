@@ -30,6 +30,7 @@ def get_labeled_frames_count(label):
             item = [str(x1), str(y1), str(w), str(h)]
             item_str = key + ','.join(item)
             frame_label_dict[item_str] = True
+    session.close()
     return len(frame_label_dict)
 
 
@@ -121,7 +122,6 @@ def get_available_labels():
 def get_videos_labels_of_classifier(classifier):
     session = db_util.renew_session()
     videos = []
-    label_map = {}
     for video in classifier.videos:
         video_obj = {
             'name':video.slug,
@@ -129,18 +129,10 @@ def get_videos_labels_of_classifier(classifier):
         }
         videos.append(video_obj)
         # search all labels of that video
-        query_result = session.query(Label).filter(Label.videoid == video.id).all()
-        for label in query_result:
-            label_name = label.text
-            if label_name not in label_map:
-                label_obj = {
-                    'name':label_name,
-                    'id': label.id,
-                }
-                label_map[label_name] = label_obj
-    labels = []
-    for key in label_map.keys():
-        labels.append(label_map[key])
+    if classifier.labels is not None and len(str(classifier.labels)) > 0:
+        labels = str(classifier.labels).split(',')
+    else:
+        labels = []
     session.close()
     return videos, labels
 
@@ -155,7 +147,7 @@ def get_classifiers_of_user(user_id):
             'name':classifier.name,
             'id': classifier.id,
             'videos': videos,
-            'labels':labels,
+            'labels': labels,
         }
 
         result.append(obj)

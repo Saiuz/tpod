@@ -6,123 +6,99 @@
 
     <table class="table table_classifier">
         <thead>
-            <tr>
-                <th  class="table_center">Classifier Name</th>
-                <th  class="table_center">Videos</th>
-                <th  class="table_center">Labels</th>
-                <th  class="table_center">Status</th>
-                <th  class="table_center">Export</th>
-                <th  class="table_center">Delete</th>
-            </tr>
+        <tr>
+            <th class="table_center">Classifier Name</th>
+            <th class="table_center">Videos</th>
+            <th class="table_center">Labels</th>
+            <th class="table_center">Status</th>
+            <th class="table_center">Export</th>
+            <th class="table_center">Delete</th>
+        </tr>
         </thead>
         <tbody>
         {% for classifier in classifiers %}
-             <tr>
-                <th  class="table_center">{{classifier.name}}</th>
-                <th>
-                     <ul class="list_videos list-group">
+        <tr class="tr_classifier" id="{{classifier.id}}">
+            <th class="table_center">{{classifier.name}}</th>
+            <th>
+                <ul class="list_videos list_no_style">
                     {% for video in classifier.videos %}
-                        <li class="item_video list-group-item">
-                            <p class="item_video_name"> Name: {{video.name}}</p>
-                        </li>
+                    <li class="item_video">
+                        <p class="item_video_name">{{video.name}}</p>
+                    </li>
                     {% endfor%}
-                    </ul>
-                </th>
-                <th>
-                    <ul class="list_labels list-group">
+                </ul>
+            </th>
+            <th>
+                <ul class="list_labels  list_no_style">
                     {% for label in classifier.labels %}
-                        <li class="item_label list-group-item">
-                            <p class="item_video_name"> Name: {{label.name}}</p>
-                        </li>
+                    <li class="item_label">
+                        <p class="item_video_name"> {{label}}</p>
+                    </li>
                     {% endfor%}
-                    </ul>
-               </th>
-                <th>Status</th>
-                <th  class="table_center">Export</th>
-                <th  class="table_center">
-                  <form class="item_delete_classifier" action="delete" method="POST">
-                      <input hidden name="classifier_id" value="{{classifier.id}}">
-                      <button class="btn btn-danger" type="submit">Delete Classifier</button>
-                 </form>
-                </th>
-            </tr>
+                </ul>
+            </th>
+            <th>
+                <input hidden id="finish-{{classifier.id}}" name="finish-{{classifier.id}}" value="">
+                <p id="status-{{classifier.id}}"></p>
+                <p id="iteration-{{classifier.id}}"></p>
+                <p id="loss-{{classifier.id}}"></p>
+
+                <p id="cpu-{{classifier.id}}"></p>
+                <p id="memory-{{classifier.id}}"></p>
+                <p id="gpu-{{classifier.id}}"></p>
+
+            </th>
+            <th class="table_center">Export</th>
+            <th class="table_center">
+                <form class="item_delete_classifier" action="delete" method="POST">
+                    <input hidden name="classifier_id" value="{{classifier.id}}">
+                    <button class="btn btn-danger" type="submit">Delete Classifier</button>
+                </form>
+            </th>
+        </tr>
         </tbody>
         {% endfor%}
     </table>
 
 
-    <!--<ul id="list_classifier" class="list-group">-->
-        <!--{% for classifier in classifiers %}-->
-        <!--<li class="list-group-item">-->
-            <!--<div class="item_classifier">-->
-                <!--<h4 class="text_video_name"> Classifier Name: {{classifier.name}}</h4>-->
-                <!--<div class="item_classifier_info">-->
-                    <!--<h5> Videos:</h5>-->
-                    <!--<ul class="list_videos list-group">-->
-                    <!--{% for video in classifier.videos %}-->
-                        <!--<li class="item_video list-group-item">-->
-                            <!--<p class="item_video_name"> Name: {{video.name}}</p>-->
-                        <!--</li>-->
-                    <!--{% endfor%}-->
-                    <!--</ul>-->
-
-                    <!--<h5> Labels:</h5>-->
-                    <!--<ul class="list_labels list-group">-->
-                    <!--{% for video in classifier.labels %}-->
-                        <!--<li class="item_label list-group-item">-->
-                            <!--<p class="item_video_name"> Name: {{label.name}}</p>-->
-                        <!--</li>-->
-                    <!--{% endfor%}-->
-                    <!--</ul>-->
-
-                 <!--</div>-->
-                 <!--<form class="item_delete_classifier" action="delete" method="POST">-->
-                      <!--<input hidden name="classifier_id" value="{{classifier.id}}">-->
-                      <!--<button class="btn btn-danger" type="submit">Delete Classifier</button>-->
-                 <!--</form>-->
-            <!--</div>-->
-        <!--</li>-->
-        <!--{% endfor%}-->
-    <!--</ul>-->
-    <!--<br>-->
     <div id="holder_create_classifier">
 
-   <h4> Create Classifier:</h4>
-    <form id="form_create_classifier" method="POST" action="create">
-        <div class="form-group">
-            <label for="classifier_name">Classifier Name:</label>
-            <input id="classifier_name" type="text" name="classifier_name" class="form-control"><br>
-        </div>
-        <div class="form-group form-inline">
-            <label for="param_network_type">Choose the Network Type:</label>
-            <select id="classifier-type-select" name="character">
-            </select>
-            <input id="param_network_type" type="text" name="network_type" hidden>
-        </div>
+        <h4> Create Classifier:</h4>
+        <form id="form_create_classifier" method="POST" action="create">
+            <div class="form-group">
+                <label for="classifier_name">Classifier Name:</label>
+                <input id="classifier_name" type="text" name="classifier_name" class="form-control"><br>
+            </div>
+            <div class="form-group form-inline">
+                <label for="param_network_type">Choose the Network Type:</label>
+                <select id="classifier-type-select" name="character">
+                </select>
+                <input id="param_network_type" type="text" name="network_type" hidden>
+            </div>
 
-        <div class="form-group form-inline">
-            <label for="param_videos">Choose Videos:</label>
+            <div class="form-group form-inline">
+                <label for="param_videos">Choose Videos:</label>
 
-            <select id="video-select" name="character" multiple="multiple">
-            </select>
-            <input id="param_videos" type="text" name="video_list" hidden>
-        </div>
+                <select id="video-select" name="character" multiple="multiple">
+                </select>
+                <input id="param_videos" type="text" name="video_list" hidden>
+            </div>
 
-        <div class="form-group form-inline">
-            <label for="param_labels">Choose Labels:</label>
+            <div class="form-group form-inline">
+                <label for="param_labels">Choose Labels:</label>
 
-            <select id="label-select" name="character" multiple="multiple">
-            </select>
-            <input id="param_labels" type="text" name="label_list" hidden>
-        </div>
+                <select id="label-select" name="character" multiple="multiple">
+                </select>
+                <input id="param_labels" type="text" name="label_list" hidden>
+            </div>
 
-        <div class="form-group form-inline">
-            <label for="epoch">Epoch:</label>
-            <input id="epoch" type="number" name="epoch" class="form-control" value="100"><br>
-        </div>
+            <div class="form-group form-inline">
+                <label for="epoch">Epoch:</label>
+                <input id="epoch" type="number" name="epoch" class="form-control" value="100"><br>
+            </div>
 
-        <button class="btn btn-primary" type="submit">Submit</button>
-    </form>
+            <button class="btn btn-primary" type="submit">Submit</button>
+        </form>
     </div>
 </div>
 {% endblock %}
@@ -135,73 +111,130 @@
 <script src="static/js/jquery.fileupload.js"></script>
 <script src="static/js/sol.js"></script>
 <script>
-    $(function() {
-           $('#video-select').searchableOptionList({
-                data: 'available_videos',
-               texts:{
-                    searchplaceholder:'Choose videos for the classifier'
-               }
-            });
-            $('#label-select').searchableOptionList({
-                data: 'available_labels',
-               texts:{
-                    searchplaceholder:'Choose labels for the classifier'
-               }
-            });
+    $(function () {
+        $('#video-select').searchableOptionList({
+            data: 'available_videos',
+            texts: {
+                searchplaceholder: 'Choose videos for the classifier'
+            }
+        });
+        $('#label-select').searchableOptionList({
+            data: 'available_labels',
+            texts: {
+                searchplaceholder: 'Choose labels for the classifier'
+            }
+        });
 
-           $('#classifier-type-select').searchableOptionList({
-               data: 'available_classifier_types',
-               texts:{
-                    searchplaceholder:'choose the type of the classfier'
-               }
-            });
+        $('#classifier-type-select').searchableOptionList({
+            data: 'available_classifier_types',
+            texts: {
+                searchplaceholder: 'choose the type of the classfier'
+            }
+        });
     });
 
-$("#form_create_classifier").submit(function(e){
-    var selected_videos = $('#video-select').searchableOptionList().getSelection();
-    var selected_labels = $('#label-select').searchableOptionList().getSelection();
-    var selected_network = $('#classifier-type-select').searchableOptionList().getSelection();
+    $("#form_create_classifier").submit(function (e) {
+        var selected_videos = $('#video-select').searchableOptionList().getSelection();
+        var selected_labels = $('#label-select').searchableOptionList().getSelection();
+        var selected_network = $('#classifier-type-select').searchableOptionList().getSelection();
 
-    var videos = "";
-    for(var i = 0; i < selected_videos.length; i++){
-        if(i == selected_videos.length - 1){
-            videos += (selected_videos[i].value);
-        }else{
-            videos += (selected_videos[i].value + ",");
+        var videos = "";
+        for (var i = 0; i < selected_videos.length; i++) {
+            if (i == selected_videos.length - 1) {
+                videos += (selected_videos[i].value);
+            } else {
+                videos += (selected_videos[i].value + ",");
+            }
         }
-    }
 
-    var labels = "";
-    for(var i = 0; i < selected_labels.length; i++){
-        if(i == selected_labels.length - 1){
-            labels += (selected_labels[i].value);
-        }else{
-            labels += (selected_labels[i].value + ",");
+        var labels = "";
+        for (var i = 0; i < selected_labels.length; i++) {
+            if (i == selected_labels.length - 1) {
+                labels += (selected_labels[i].value);
+            } else {
+                labels += (selected_labels[i].value + ",");
+            }
         }
-    }
 
-    var network_type;
-    for(var i = 0; i < selected_network.length; i++){
-        network_type = selected_network[i].value;
-    }
-    $('#param_videos').val(videos);
-    $('#param_network_type').val(network_type);
-    $('#param_labels').val(labels);
-
-    console.log(videos);
-    console.log(network_type);
-});
-
-$(".item_delete_classifier").submit(function(e){
-    e.preventDefault();
-    var form = this;
-    BootstrapDialog.confirm('Are you sure to delete this classifier? It will delete all related models, docker files', function(result){
-        if(result) {
-            form.submit()
-        }else {
+        var network_type;
+        for (var i = 0; i < selected_network.length; i++) {
+            network_type = selected_network[i].value;
         }
+        $('#param_videos').val(videos);
+        $('#param_network_type').val(network_type);
+        $('#param_labels').val(labels);
+
+        console.log(videos);
+        console.log(network_type);
     });
-});
+
+    $(".item_delete_classifier").submit(function (e) {
+        e.preventDefault();
+        var form = this;
+        BootstrapDialog.confirm('Are you sure to delete this classifier? It will delete all related models, docker files', function (result) {
+            if (result) {
+                form.submit()
+            } else {
+            }
+        });
+    });
+    var trim = function (input, length) {
+        if (input.length > length) {
+            return input.substring(0, length)
+        }
+        return input;
+    }
+    setInterval(function () {
+        var classifiers = $(".tr_classifier");
+        var ids = [];
+        for (var i = 0; i < classifiers.length; i++) {
+            var classifier = classifiers[i];
+            var id = classifier.id
+            // avoid querying finished jobs
+            if ($("#finish-" + id).val().length == 0) {
+                ids.push(id);
+            } else {
+                $("#cpu-" + id).text("")
+                $("#memory-" + id).text("");
+                $("#gpu-" + id).text("")
+            }
+        }
+        if (ids.length > 0) {
+            // refresh the status
+            $.ajax({
+                type: "POST",
+                url: "get_classifier_status",
+                data: {
+                    'classifier_ids': ids.join(","),
+                },
+                success: function (data) {
+                    // after getting the result, bind it to the status
+                    for (var i = 0; i < ids.length; i++) {
+                        var id = ids[i];
+                        var status_obj = JSON.parse(data[id]);
+                        $("#status-" + id).text("Status: " + status_obj.status)
+                        $("#iteration-" + id).text("Iteration: " + status_obj.iteration)
+                        $("#loss-" + id).text("Loss: " + status_obj.loss)
+
+                        var resource_obj = status_obj.resource_utility;
+
+                        var total_memory_mb = parseInt(parseInt(resource_obj.total_memory) / 1000000);
+                        $("#cpu-" + id).text("CPU: " + trim(resource_obj.process_cpu_percentage, 5) + "%")
+                        $("#memory-" + id).text("Memory: " + trim(String(resource_obj.process_memory_percentage), 5) + "%; Total: "
+                                + total_memory_mb + "MB");
+                        $("#gpu-" + id).text("GPU: " + resource_obj.process_gpu_memory_used + "MB; Total: "
+                                + resource_obj.total_gpu_memory + "MB; Total used " +
+                                resource_obj.total_gpu_memory_used + "MB")
+                        if (status_obj.status == "FINISH") {
+                            $("#finish-" + id).val("done");
+                        }
+                    }
+                }
+            })
+
+        }
+    }, 1000)
+
 
 </script>
 <![endif]-->

@@ -49,3 +49,8 @@ h5{
     padding: 20px;
     border-radius: 20px;
 }
+
+.list_no_style{
+    list-style: none;
+    padding-left: 0;
+}

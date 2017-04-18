@@ -9,6 +9,8 @@ from tpod_models import Classifier
 from vatic.models import Video, Label, Box, Path
 from celery_tasks import train_task
 import random
+from celery_model import TaskStatusRecord
+from sqlalchemy import desc
 
 
 def generate_image_and_label_file(video_array, label_name_array):
@@ -107,7 +109,8 @@ def generate_image_and_label_file(video_array, label_name_array):
                     label_list_array.append('\n')
             else:
                 print 'path not exist %s the index is %s ' % (str(image_file_path), str(x))
-    print 'total length of image %s, length of label %s, total frames %s' % (str(len(image_list_array)), str(len(label_list_array)), str(total_frames))
+    print 'total length of image %s, length of label %s, total frames %s' % (
+        str(len(image_list_array)), str(len(label_list_array)), str(total_frames))
     util.write_list_to_file(image_list_array, image_file_path)
     util.write_list_to_file(label_list_array, label_file_path)
 
@@ -164,7 +167,8 @@ def delete_classifier(classifier_id):
 
 
 def create_new_classifier(current_user, classifier_name, epoch, video_list, label_list):
-    image_list_file_path, label_list_file_path, label_name_file_path = generate_image_and_label_file(video_list, label_list)
+    image_list_file_path, label_list_file_path, label_name_file_path = generate_image_and_label_file(video_list,
+                                                                                                     label_list)
     session = db_util.renew_session()
     classifier = Classifier(name=classifier_name, owner_id=current_user.id)
     # add videos
@@ -205,41 +209,30 @@ def launch_training_docker_task(classifier_id, train_set_name, epoch, weights=No
     if weights is None:
         weights = '/VGG_CNN_M_1024.v2.caffemodel'
     task_id = str(classifier_id) + '-' + str(random.getrandbits(32))
-    print 'classifier id %s, train set %s, epoch %s, weight %s ' % (str(classifier_id), str(train_set_name), str(epoch), str(weights))
+    print 'classifier id %s, train set %s, epoch %s, weight %s ' % (
+        str(classifier_id), str(train_set_name), str(epoch), str(weights))
     train_task.apply_async((classifier_id, train_set_name, epoch, weights), task_id=task_id)
     return task_id
 
-# def get_latest_task_status(classifier_id):
-    
-  
 
-#    id              = Column(Integer, primary_key = True)
-#    name            = Column(String(250))
-#    owner_id = Column(Integer, ForeignKey("users.id"))
-#    # one to many
-#    videos = relationship(Video)
-#    # one to many
-#    children = relationship("Classifier")
-#    parent_id = Column(Integer, ForeignKey("classifiers.id"))
-#    # training images
-#    training_image_list_file_path  = Column(String(550))
-#    training_label_list_file_path  = Column(String(550))
-#    training_label_name_file_path  = Column(String(550))
-#    epoch   = Column(Integer, default=0)
-#    # a string to indicate the network type: ['Fast_RCNN', 'mxnet']
-#    network_type  = Column(String(250))
-#    # the name of model, specified by the user
-#    model_name  = Column(String(250))
-#    # training status: [(0, none), (1, waiting), (2, training), (3, finished)]
-#    task_id   = Column(String(250))
-#    training_status   = Column(Integer, default=0)
-#    training_start_time   = Column(BigInteger)
-#    training_end_time   = Column(BigInteger)
-#    # many to many
-#    evaluation_sets = relationship("EvaluationSet", secondary=classifier_evaluation_association_table, back_populates='classifiers')
-#    container_id   = Column(String(250))
-#    image_id   = Column(String(250))
+def get_latest_task_status(classifier_id):
+    session = db_util.renew_session()
+    # session.query(Classifier).filter(Classifier.owner_id == user_id).all()
+    # classifier_query = session.query(TaskStatusRecord).filter(TaskStatusRecord.classifier_id == classifier_id).order_by(
+    classifier_query = session.query(TaskStatusRecord).filter(TaskStatusRecord.classifier_id == classifier_id).order_by(
+        desc(TaskStatusRecord.update_time)).first()
+    session.close()
+    if classifier_query:
+        return classifier_query
+    return None
 
-
-
-
+# class TaskStatusRecord(Base):
+#     __tablename__   = "task_status_records"
+#
+#     id              = Column(Integer, primary_key = True)
+#     task_id  = Column(String(250))
+#     classifier_id  = Column(String(250))
+#
+#     update_time  = DateTime()
+#
+#     body = Column(String(5000))

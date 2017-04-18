@@ -39,6 +39,7 @@ def add_label():
         label = Label(text = form.label_name.data, videoid = form.video_id.data)
         session.add(label)
         session.commit()
+        session.close()
         turkic_replacement.publish()
         return redirect(request.referrer)
     return response_util.json_error_response(msg=str(form.errors))

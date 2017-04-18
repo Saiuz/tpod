@@ -7,6 +7,7 @@ import db_helper
 from forms import CreateClassifierForm, DeleteClassifierForm
 import response_util
 import classifier_controller as controller
+import json
 
 classifier_page = Blueprint('classifier_page', __name__, url_prefix='/classifier', template_folder='templates',
                        static_url_path='/static', static_folder='static')
@@ -30,6 +31,20 @@ def available_labels():
             'value':label['name'],
         }
         ret.append(obj)
+    return jsonify(ret)
+
+
+@classifier_page.route("/get_classifier_status", methods=["POST"])
+@login_required
+def get_classifier_status():
+    classifier_ids = request.form['classifier_ids']
+    ret = {}
+    if classifier_ids is not None:
+        classifier_ids = classifier_ids.split(',')
+        for classifier_id in classifier_ids:
+            status = controller.get_latest_task_status(classifier_id)
+            if status is not None:
+                ret[str(classifier_id)] = str(status.body)
     return jsonify(ret)
 
 

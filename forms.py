@@ -110,6 +110,7 @@ class EditLabelForm(FlaskForm):
             return False
         label.text = self.label_name.data
         session.commit()
+        session.close()
         return True
 
 
@@ -181,3 +182,4 @@ class SignupForm(FlaskForm):
             return False
         session = db_util.renew_session()
         user = session.query(User).filter_by(username=self.username.data).first()
+        session.close()

@@ -9,9 +9,9 @@ class TaskStatusRecord(Base):
     task_id  = Column(String(250))
     classifier_id  = Column(String(250))
 
-    update_time  = DateTime()
-
+    update_time  = Column(DateTime())
     body = Column(String(5000))
+
     '''
          {
             'resource_utility': {
@@ -24,6 +24,7 @@ class TaskStatusRecord(Base):
                 'process_memory_percentage': self.proc.memory_percent(),
                 'process_gpu_memory_used': gpu_process_usage,
             }
+            'update_time': 14xxxxxx,
         }
     '''
 

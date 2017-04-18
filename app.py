@@ -47,7 +47,9 @@ login_manager.login_view = "login"
 @login_manager.user_loader
 def load_user(id):
     session = db_util.renew_session()
-    return session.query(User).filter(User.id == id).first()
+    ret = session.query(User).filter(User.id == id).first()
+    session.close()
+    return ret
 
 
 # Create customized model view class
