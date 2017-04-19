@@ -27,7 +27,7 @@ STATE_PROGRESS = 'PROGRESS'
 STATE_FINISH = 'FINISH'
 
 
-class TPODTask(Task):
+class TPODBaseTask(Task):
     def __init__(self):
         self.task_type = TASK_TYPE_NONE
         self.pid = None
@@ -38,15 +38,11 @@ class TPODTask(Task):
         self.status = None
         self.container = None
         self.last_read_log_time = None
-        self.total_iteration = -1
-        self.iteration = -1
-        self.loss = -1
-        self.training_finish_detected = False
 
     def __call__(self, *args, **kwargs):
         logger.info('Starting Task: {0.name},type:{0.task_type},[{0.request.id}]'.format(self))
         self.task_id = self.request.id
-        return super(TPODTask, self).__call__(*args, **kwargs)
+        return super(TPODBaseTask, self).__call__(*args, **kwargs)
 
     def init_message_callback(self):
         def register_callback_async():
@@ -75,12 +71,10 @@ class TPODTask(Task):
             },
             "status": self.status,
             "container_status": None,
-            "iteration": self.iteration,
-            "loss": self.loss,
             "pid": -1,
         }
         if self.pid is None or not psutil.pid_exists(self.pid):
-            return json.dumps(ret)
+            return ret
 
         if self.proc is None:
             self.proc = psutil.Process(self.pid)
@@ -97,8 +91,8 @@ class TPODTask(Task):
         ret["resource_utility"]["process_gpu_memory_used"] = gpu_process_usage
         if self.container is not None:
             ret["container_status"] = self.container.status
-            print 'conntainer status ' + str(self.container.status)
-        return json.dumps(ret)
+            print 'container status ' + str(self.container.status)
+        return ret
 
     def read_logs(self):
         try:
@@ -108,33 +102,13 @@ class TPODTask(Task):
             else:
                 log = self.container.logs(timestamps=True, since=self.last_read_log_time)
             self.last_read_log_time = int(time.time())
-
-            # analysis the log
-            iteration_match = re.findall(r'Iteration\s*(\d+),?\s*loss[^\d]+([\d,\.]+)', log, re.DOTALL)
-            if iteration_match:
-                for match in iteration_match:
-                    self.iteration = int(match[0])
-                    self.loss = float(match[1])
-                    print 'iteration %s, loss %s, total iteration %s' % \
-                          (str(self.iteration), str(self.loss), str(self.total_iteration))
-
-            # check if training finishes, to avoid accident print of this signal,
-            # we also check if the iteration is mostly executed
-            if log is not None and int(self.total_iteration) > 0 and \
-                                    int(self.total_iteration) - int(self.iteration) <= 40:
-                finish_match = re.findall(r'done\ssolving', log, re.DOTALL)
-                if len(finish_match) > 0:
-                    self.training_finish_detected = True
-                    self.iteration = self.total_iteration
-                    print 'training finish signal detected'
-
             return log
         except Exception as e:
             print e
 
     def update_status(self, state):
         self.status = state
-        content = str(self.get_process_status())
+        content = str(json.dumps(self.get_process_status()))
         print "get update " + content
         session = db_util.renew_session()
         status = TaskStatusRecord(task_id=self.task_id, classifier_id=self.classifier_id)
@@ -145,14 +119,55 @@ class TPODTask(Task):
         session.close()
 
 
-@app.task(bind=True, base=TPODTask)
-def train_task(self, classifier_id, train_set_name, epoch, weights):
-    self.task_type = TASK_TYPE_TRAIN
-    self.classifier_id = classifier_id
-    self.total_iteration = epoch
+class TPODTrainingTask(TPODBaseTask):
+    def __init__(self):
+        super(TPODTrainingTask, self).__init__()
+        self.total_iteration = -1
+        self.iteration = -1
+        self.loss = -1
+        self.training_finish_detected = False
 
-    self.update_status(STATE_START)
-    self.init_message_callback()
+    def init_task(self, classifier_id, train_set_name, epoch, weights):
+        self.task_type = TASK_TYPE_TRAIN
+        self.classifier_id = classifier_id
+        self.total_iteration = epoch
+
+        self.update_status(STATE_START)
+        self.init_message_callback()
+
+    def get_process_status(self):
+        ret = super(TPODTrainingTask, self).get_process_status()
+        ret['iteration'] = self.iteration
+        ret['loss'] = self.loss
+        return ret
+
+    def read_logs(self):
+        log = super(TPODTrainingTask, self).read_logs()
+        # analysis the log
+        iteration_match = re.findall(r'Iteration\s*(\d+),?\s*loss[^\d]+([\d,\.]+)', log, re.DOTALL)
+        if iteration_match:
+            for match in iteration_match:
+                self.iteration = int(match[0])
+                self.loss = float(match[1])
+                print 'iteration %s, loss %s, total iteration %s' % \
+                      (str(self.iteration), str(self.loss), str(self.total_iteration))
+
+        # check if training finishes, to avoid accident print of this signal,
+        # we also check if the iteration is mostly executed
+        if log is not None and int(self.total_iteration) > 0 and \
+                                int(self.total_iteration) - int(self.iteration) <= 40:
+            finish_match = re.findall(r'done\ssolving', log, re.DOTALL)
+            if len(finish_match) > 0:
+                self.training_finish_detected = True
+                self.iteration = self.total_iteration
+                print 'training finish signal detected'
+
+        return log
+
+
+@app.task(bind=True, base=TPODTrainingTask)
+def train_task(self, classifier_id, train_set_name, epoch, weights):
+    self.init_task(classifier_id, train_set_name, epoch, weights)
     # example command inside the docker
     # /usr/bin/python tools/tpod_train_net.py --weights /VGG_CNN_M_1024.v2.caffemodel --output_dir .
     # --iter 2000 --train_set_name 1492198
