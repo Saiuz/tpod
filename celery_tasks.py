@@ -13,6 +13,7 @@ import db_util
 import docker
 import re
 import json
+import random
 
 app = Celery('tpod_task', broker='amqp://localhost', backend='rpc://localhost')
 logger = get_task_logger('tpod')
@@ -178,7 +179,7 @@ def train_task(self, classifier_id, train_set_name, epoch, weights):
     # proc = subprocess.Popen(['nvidia-docker', 'run', '--name', docker_name, 'nvidia/cuda', 'nvidia-smi'])
 
     docker_data_volume = '/home/suanmiao/workspace/tpod/dataset/:/dataset'
-    image_name = 'faster-rcnn-base'
+    image_name = 'faster-rcnn-primitive'
     proc = subprocess.Popen(['nvidia-docker', 'run', '-v', docker_data_volume, '--name', docker_name,
                              image_name, '/usr/bin/python', 'tools/tpod_train_net.py', '--weights', str(weights),
                              '--output_dir', '.', '--iter', str(epoch), '--train_set_name', str(train_set_name)])
@@ -186,7 +187,7 @@ def train_task(self, classifier_id, train_set_name, epoch, weights):
     client = docker.from_env()
 
     # wait for the docker to launch
-    time.sleep(3)
+    time.sleep(2)
     try:
         self.container = client.containers.get(docker_name)
     except Exception as e:
@@ -212,6 +213,107 @@ def train_task(self, classifier_id, train_set_name, epoch, weights):
     commit_message = 'commit from task %s, at time %s ' % (str(self.task_id), str(datetime.datetime.now()))
     self.container.commit(author='tpod_task', message=commit_message, repository=docker_name)
 
+    # stop and remove the container
+    self.container.stop()
+    self.container.remove()
+
+    proc.terminate()
+    self.update_status(STATE_FINISH)
+
+
+class TPODTestTask(TPODBaseTask):
+    def __init__(self):
+        super(TPODTestTask, self).__init__()
+        # the length of time the server will run
+        # -1 means running forever
+        self.time_remains = 10
+        # the number of request perceived from the log
+        self.request_number = 0
+
+    def init_task(self, classifier_id, time_remains=10):
+        self.task_type = TASK_TYPE_TEST
+        self.classifier_id = classifier_id
+        self.time_remains = time_remains
+
+        self.update_status(STATE_START)
+        self.init_message_callback()
+
+    def get_process_status(self):
+        ret = super(TPODTestTask, self).get_process_status()
+        ret['request_number'] = self.request_number
+        ret['time_remains'] = self.time_remains
+        return ret
+
+    def read_logs(self):
+        log = super(TPODTestTask, self).read_logs()
+        # analysis the log
+        # iteration_match = re.findall(r'Iteration\s*(\d+),?\s*loss[^\d]+([\d,\.]+)', log, re.DOTALL)
+        # if iteration_match:
+        #     for match in iteration_match:
+        #         self.iteration = int(match[0])
+        #         self.loss = float(match[1])
+        #         print 'iteration %s, loss %s, total iteration %s' % \
+        #               (str(self.iteration), str(self.loss), str(self.total_iteration))
+        #
+        # # check if training finishes, to avoid accident print of this signal,
+        # # we also check if the iteration is mostly executed
+        # if log is not None and int(self.total_iteration) > 0 and \
+        #                         int(self.total_iteration) - int(self.iteration) <= 40:
+        #     finish_match = re.findall(r'done\ssolving', log, re.DOTALL)
+        #     if len(finish_match) > 0:
+        #         self.training_finish_detected = True
+        #         self.iteration = self.total_iteration
+        #         print 'training finish signal detected'
+        #
+        return log
+
+
+@app.task(bind=True, base=TPODTestTask)
+def test_task(self, classifier_id, time_remains):
+    self.init_task(classifier_id, time_remains)
+
+    # since this is a container based on a existing classifier's image,
+    # and there might be multiple test task on one classifier,
+    # thus the docker name should be different from the base one
+    docker_name = str(self.task_id) + '-' + str(random.getrandbits(32))
+
+    host_port = util.get_available_port()
+    container_port = 8000
+
+    image_name = str(classifier_id)
+    proc = subprocess.Popen(['nvidia-docker', 'run', '-e', 'FLASK_APP=tools/tpod_detect_net.py', '--name',
+                             docker_name, image_name, '-p', str(host_port) + ':' + str(container_port),
+                             'flask', 'run', '--host=0.0.0.0', '--port=' + str(container_port)])
+
+    # bind the docker api
+    client = docker.from_env()
+
+    # wait for the docker to launch
+    time.sleep(2)
+    try:
+        self.container = client.containers.get(docker_name)
+    except Exception as e:
+        print 'attach container error: ' + str(e)
+        proc.terminate()
+        self.update_status(STATE_FINISH)
+
+    # actually, the process executing the cmd is not the process the container is running,
+    # thus we need find and rebind the process
+    # since we are running only one process inside the container, it's feasible to hard code the index of the process
+    top = self.container.top()
+    self.pid = int(top['Processes'][0][1])
+
+    print 'launching training task with pid %s train set %s, epoch %s, weights %s' % (str(self.pid),
+                                                                                      str(train_set_name), str(epoch),
+                                                                                      str(weights))
+    # begin monitoring the status of the process
+    while self.container.status == 'running' and psutil.pid_exists(self.pid) and self.time_remains > 0:
+        self.read_logs()
+        self.update_status(STATE_PROGRESS)
+        time.sleep(1 / float(self.monitor_rate))
+        self.time_remains -= (1 / float(self.monitor_rate))
+
+    # since this is a test task, just remove it
     # stop and remove the container
     self.container.stop()
     self.container.remove()

@@ -4,6 +4,7 @@ import hashlib
 import subprocess
 import re
 import pika
+import socket
 
 
 def get_file_size(file_name):
@@ -107,4 +108,15 @@ def register_message_callback(callback, channel, task_id):
                           no_ack=True)
     channel.start_consuming()
     return consumer_tag
+
+
+def get_available_port():
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
+    sock.bind(('', 0))
+    _, port = sock.getsockname()
+    sock.close()
+    return port
+
+
+
 
