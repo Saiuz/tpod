@@ -13,6 +13,8 @@ LABEL_NAME_PATH = 'dataset/label_name/'
 # probably no need to mess below this line
 
 NETWORK_TYPE_FASTER_RCNN = 'faster_rcnn'
+TASK_TYPE_TRAIN = 'train'
+TASK_TYPE_TEST = 'test'
 
 import multiprocessing
 processes = multiprocessing.cpu_count()

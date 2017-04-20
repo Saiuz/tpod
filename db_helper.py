@@ -148,7 +148,9 @@ def get_classifiers_of_user(user_id):
             'id': classifier.id,
             'videos': videos,
             'labels': labels,
+            'task_type': classifier.task_type,
         }
+        print 'get task type %s' % str(classifier.task_type)
 
         result.append(obj)
     session.close()

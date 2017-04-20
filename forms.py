@@ -9,6 +9,22 @@ import wtforms.validators
 from vatic.models import *
 
 
+class CreateTestClassifierForm(FlaskForm):
+    base_classifier_id = StringField('base_classifier_id', validators=[DataRequired()])
+    long_running = StringField('long_running', validators=[DataRequired()])
+    time_remains = IntegerField('time_remains')
+
+    def __init__(self, *args, **kwargs):
+        kwargs['csrf_enabled'] = False
+        FlaskForm.__init__(self, *args, **kwargs)
+
+    def validate(self):
+        rv = FlaskForm.validate(self)
+        if not rv:
+            return False
+        return True
+
+
 class DeleteClassifierForm(FlaskForm):
     classifier_id = StringField('classifier_id', validators=[DataRequired()])
 

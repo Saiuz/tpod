@@ -14,6 +14,7 @@ import docker
 import re
 import json
 import random
+import config
 
 app = Celery('tpod_task', broker='amqp://localhost', backend='rpc://localhost')
 logger = get_task_logger('tpod')
@@ -77,22 +78,26 @@ class TPODBaseTask(Task):
         if self.pid is None or not psutil.pid_exists(self.pid):
             return ret
 
-        if self.proc is None:
-            self.proc = psutil.Process(self.pid)
+        try:
+            if self.proc is None:
+                self.proc = psutil.Process(self.pid)
 
-        v_mem_info = psutil.virtual_memory()
-        gpu_total_used, gpu_total, gpu_process_usage = util.get_gpu_info(self.pid)
-        ret["resource_utility"]["process_cpu_percentage"] = self.proc.cpu_percent(),
-        ret["resource_utility"]["total_memory"] = v_mem_info.total
-        ret["resource_utility"]["total_memory_used"] = v_mem_info.used
-        ret["resource_utility"]["total_memory_percentage"] = v_mem_info.percent
-        ret["resource_utility"]["total_gpu_memory"] = gpu_total
-        ret["resource_utility"]["total_gpu_memory_used"] = gpu_total_used
-        ret["resource_utility"]["process_memory_percentage"] = self.proc.memory_percent()
-        ret["resource_utility"]["process_gpu_memory_used"] = gpu_process_usage
-        if self.container is not None:
-            ret["container_status"] = self.container.status
-            print 'container status ' + str(self.container.status)
+            v_mem_info = psutil.virtual_memory()
+            gpu_total_used, gpu_total, gpu_process_usage = util.get_gpu_info(self.pid)
+            ret["resource_utility"]["process_cpu_percentage"] = self.proc.cpu_percent(),
+            ret["resource_utility"]["total_memory"] = v_mem_info.total
+            ret["resource_utility"]["total_memory_used"] = v_mem_info.used
+            ret["resource_utility"]["total_memory_percentage"] = v_mem_info.percent
+            ret["resource_utility"]["total_gpu_memory"] = gpu_total
+            ret["resource_utility"]["total_gpu_memory_used"] = gpu_total_used
+            ret["resource_utility"]["process_memory_percentage"] = self.proc.memory_percent()
+            ret["resource_utility"]["process_gpu_memory_used"] = gpu_process_usage
+            if self.container is not None:
+                ret["container_status"] = self.container.status
+                print 'container status ' + str(self.container.status)
+            return ret
+        except Exception as e:
+            print e
         return ret
 
     def read_logs(self):
@@ -179,9 +184,9 @@ def train_task(self, classifier_id, train_set_name, epoch, weights):
     # proc = subprocess.Popen(['nvidia-docker', 'run', '--name', docker_name, 'nvidia/cuda', 'nvidia-smi'])
 
     docker_data_volume = '/home/suanmiao/workspace/tpod/dataset/:/dataset'
-    image_name = 'faster-rcnn-primitive'
+    base_image_name = 'faster-rcnn-primitive'
     proc = subprocess.Popen(['nvidia-docker', 'run', '-v', docker_data_volume, '--name', docker_name,
-                             image_name, '/usr/bin/python', 'tools/tpod_train_net.py', '--weights', str(weights),
+                             base_image_name, '/usr/bin/python', 'tools/tpod_train_net.py', '--weights', str(weights),
                              '--output_dir', '.', '--iter', str(epoch), '--train_set_name', str(train_set_name)])
     # bind the docker api
     client = docker.from_env()
@@ -269,21 +274,23 @@ class TPODTestTask(TPODBaseTask):
 
 
 @app.task(bind=True, base=TPODTestTask)
-def test_task(self, classifier_id, time_remains):
+def test_task(self, classifier_id, docker_image_id, time_remains, host_port):
     self.init_task(classifier_id, time_remains)
 
     # since this is a container based on a existing classifier's image,
     # and there might be multiple test task on one classifier,
     # thus the docker name should be different from the base one
-    docker_name = str(self.task_id) + '-' + str(random.getrandbits(32))
+    docker_name = str(self.task_id)
 
-    host_port = util.get_available_port()
     container_port = 8000
 
-    image_name = str(classifier_id)
-    proc = subprocess.Popen(['nvidia-docker', 'run', '-e', 'FLASK_APP=tools/tpod_detect_net.py', '--name',
-                             docker_name, image_name, '-p', str(host_port) + ':' + str(container_port),
-                             'flask', 'run', '--host=0.0.0.0', '--port=' + str(container_port)])
+    image_name = str(docker_image_id)
+    example_cmd = 'nvidia-docker run -p %s --name %s %s /bin/bash run_server.sh' % (
+        str(host_port) + ':' + str(container_port), str(docker_name), str(image_name))
+    print 'example cmd: %s ' % example_cmd
+    proc = subprocess.Popen(['nvidia-docker', 'run', '-p', str(host_port) + ':' + str(container_port), '--name',
+                             docker_name, image_name,
+                             '/bin/bash', 'run_server.sh'])
 
     # bind the docker api
     client = docker.from_env()
@@ -303,9 +310,12 @@ def test_task(self, classifier_id, time_remains):
     top = self.container.top()
     self.pid = int(top['Processes'][0][1])
 
-    print 'launching training task with pid %s train set %s, epoch %s, weights %s' % (str(self.pid),
-                                                                                      str(train_set_name), str(epoch),
-                                                                                      str(weights))
+    print 'launching training task with pid %s, docker_image_name %s, time_remains %s, host_port %s' % (str(self.pid),
+                                                                                                        str(
+                                                                                                            docker_image_id),
+                                                                                                        str(
+                                                                                                            time_remains),
+                                                                                                        str(host_port))
     # begin monitoring the status of the process
     while self.container.status == 'running' and psutil.pid_exists(self.pid) and self.time_remains > 0:
         self.read_logs()
@@ -315,8 +325,7 @@ def test_task(self, classifier_id, time_remains):
 
     # since this is a test task, just remove it
     # stop and remove the container
-    self.container.stop()
-    self.container.remove()
+    self.container.remove(force=True)
 
     proc.terminate()
     self.update_status(STATE_FINISH)

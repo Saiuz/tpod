@@ -7,7 +7,7 @@ import db_util
 import util
 from tpod_models import Classifier
 from vatic.models import Video, Label, Box, Path
-from celery_tasks import train_task
+from celery_tasks import train_task, test_task
 import random
 from celery_model import TaskStatusRecord
 from sqlalchemy import desc
@@ -166,7 +166,7 @@ def delete_classifier(classifier_id):
     session.close()
 
 
-def create_new_classifier(current_user, classifier_name, epoch, video_list, label_list):
+def create_training_classifier(current_user, classifier_name, epoch, video_list, label_list):
     image_list_file_path, label_list_file_path, label_name_file_path = generate_image_and_label_file(video_list,
                                                                                                      label_list)
     session = db_util.renew_session()
@@ -179,6 +179,7 @@ def create_new_classifier(current_user, classifier_name, epoch, video_list, labe
     classifier.model_name = classifier_name
     classifier.epoch = epoch
     classifier.network_type = config.NETWORK_TYPE_FASTER_RCNN
+    classifier.task_type = config.TASK_TYPE_TRAIN
 
     # add these labels and videos to the classifier
     for video_id in video_list:
@@ -217,14 +218,82 @@ def launch_training_docker_task(classifier_id, train_set_name, epoch, weights=No
 
 def get_latest_task_status(classifier_id):
     session = db_util.renew_session()
-    # session.query(Classifier).filter(Classifier.owner_id == user_id).all()
-    # classifier_query = session.query(TaskStatusRecord).filter(TaskStatusRecord.classifier_id == classifier_id).order_by(
     classifier_query = session.query(TaskStatusRecord).filter(TaskStatusRecord.classifier_id == classifier_id).order_by(
         desc(TaskStatusRecord.update_time)).first()
     session.close()
     if classifier_query:
         return classifier_query
     return None
+
+
+def launch_test_docker_task(classifier_id, docker_image_id, time_remains, host_port):
+    task_id = str(classifier_id) + '-' + str(random.getrandbits(32))
+    print 'launching test docker with task id %s ' % str(task_id)
+    test_task.apply_async((classifier_id, docker_image_id, time_remains, host_port), task_id=task_id)
+    return task_id
+
+
+def create_test_classifier(current_user, base_classifier_id, time_remains=1000):
+    session = db_util.renew_session()
+
+    base_classifier = session.query(Classifier).filter(Classifier.id == base_classifier_id).first()
+    if not base_classifier:
+        return None
+
+    classifier = Classifier(name=base_classifier.name, owner_id=current_user.id)
+    # add videos
+    classifier.training_image_list_file_path = base_classifier.training_image_list_file_path
+    classifier.training_label_list_file_path = base_classifier.training_label_list_file_path
+    classifier.training_label_name_file_path = base_classifier.training_label_name_file_path
+
+    classifier.task_type = config.TASK_TYPE_TEST
+    classifier.parent_id = base_classifier_id
+
+    classifier.model_name = base_classifier.model_name
+    classifier.epoch = base_classifier.epoch
+    classifier.network_type = base_classifier.network_type
+
+    # add these labels and videos to the classifier
+    classifier.videos = base_classifier.videos
+    classifier.labels = base_classifier.labels
+
+    session.add(classifier)
+    session.flush()
+
+    # get id of the classifier
+    classifier_id = classifier.id
+    print 'generate classifier with id %s ' % str(classifier_id)
+
+    classifier.training_start_time = int(time.time() * 1000)
+
+    host_port = util.get_available_port()
+    docker_image_id = base_classifier.task_id
+
+    task_id = launch_test_docker_task(classifier_id, docker_image_id, time_remains, host_port)
+    print 'launched the test docker with task id %s ' % str(task_id)
+    classifier.task_id = task_id
+    classifier.image_id = task_id
+    classifier.container_id = task_id
+    session.commit()
+    session.close()
+    return host_port
+
+
+def create_short_running_test_classifier(base_classifier_id, time_remains=10):
+    session = db_util.renew_session()
+
+    base_classifier = session.query(Classifier).filter(Classifier.id == base_classifier_id).first()
+    if not base_classifier:
+        return None
+    session.close()
+
+    host_port = util.get_available_port()
+    docker_image_id = base_classifier.task_id
+
+    task_id = launch_test_docker_task(base_classifier_id, docker_image_id, time_remains, host_port)
+    print 'launched the test docker with task id %s ' % str(task_id)
+    return host_port
+
 
 # class TaskStatusRecord(Base):
 #     __tablename__   = "task_status_records"

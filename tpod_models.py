@@ -62,6 +62,8 @@ class Classifier(Base):
 
     # training status: [(0, none), (1, waiting), (2, training), (3, finished)]
     task_id   = Column(String(250))
+    # the type of the task: [train, test]
+    task_type   = Column(String(250))
     training_status   = Column(Integer, default=0)
     training_start_time   = Column(BigInteger)
     training_end_time   = Column(BigInteger)

@@ -37,22 +37,55 @@
                     {% endfor%}
                 </ul>
             </th>
-            <th>
+            <th class="th-status">
                 <input hidden id="finish-{{classifier.id}}" name="finish-{{classifier.id}}" value="">
+                <p id="task-type-{{classifier.id}}">{{classifier.task_type}}</p>
                 <p id="status-{{classifier.id}}"></p>
-                <p id="iteration-{{classifier.id}}"></p>
-                <p id="loss-{{classifier.id}}"></p>
-
                 <p id="cpu-{{classifier.id}}"></p>
                 <p id="memory-{{classifier.id}}"></p>
                 <p id="gpu-{{classifier.id}}"></p>
 
+                <p id="field-1-{{classifier.id}}"></p>
+                <p id="field-2-{{classifier.id}}"></p>
+
+
             </th>
-            <th class="table_center">Export</th>
+            <th class="table_center">
+                {% if classifier.task_type == 'train' %}
+                <form class="item_test_classifier_long" action="create_test" method="POST">
+                    <input hidden name="base_classifier_id" value="{{classifier.id}}">
+                    <input hidden name="long_running" value="true">
+                    <div class="form-group form-inline">
+                        <label for="epoch">Time remains:</label>
+                        <input id="time_remains" type="number" name="time_remains" class="form-control time_remains"
+                               value="100"><br>
+                    </div>
+                    <button class="btn" type="submit">Launch Classifier</button>
+                </form>
+
+                <form class="item_test_classifier_short" action="create_test" method="POST" enctype="multipart/form-data">
+                    <input hidden name="base_classifier_id" value="{{classifier.id}}">
+                    <input hidden name="long_running" value="false">
+                    <input hidden name="format" value="img">
+                    <div class="form-group form-inline">
+                        <label for="epoch">Set the confidence</label>
+                        <input id="confidence" type="number" name="confidence" step="0.01"
+                               class="form-control time_remains"
+                               value="0.5"><br>
+                    </div>
+                    <div class="form-group">
+                        <label for="image_upload">Choose the image:</label>
+                        <input id="image_upload" type="file" name="detect_file" multiple class="form-control">
+                    </div>
+                    <button class="btn" type="submit">Test the image</button>
+                </form>
+
+                {% endif %}
+            </th>
             <th class="table_center">
                 <form class="item_delete_classifier" action="delete" method="POST">
                     <input hidden name="classifier_id" value="{{classifier.id}}">
-                    <button class="btn btn-danger" type="submit">Delete Classifier</button>
+                    <button class="btn btn-danger" type="submit">Delete</button>
                 </form>
             </th>
         </tr>
@@ -64,7 +97,7 @@
     <div id="holder_create_classifier">
 
         <h4> Create Classifier:</h4>
-        <form id="form_create_classifier" method="POST" action="create">
+        <form id="form_create_classifier" method="POST" action="create_train">
             <div class="form-group">
                 <label for="classifier_name">Classifier Name:</label>
                 <input id="classifier_name" type="text" name="classifier_name" class="form-control"><br>
@@ -213,9 +246,7 @@
                         var id = ids[i];
                         var status_obj = JSON.parse(data[id]);
                         $("#status-" + id).text("Status: " + status_obj.status)
-                        $("#iteration-" + id).text("Iteration: " + status_obj.iteration)
-                        $("#loss-" + id).text("Loss: " + status_obj.loss)
-
+                        // status these are common for all classifiers
                         var resource_obj = status_obj.resource_utility;
 
                         var total_memory_mb = parseInt(parseInt(resource_obj.total_memory) / 1000000);
@@ -225,6 +256,17 @@
                         $("#gpu-" + id).text("GPU: " + resource_obj.process_gpu_memory_used + "MB; Total: "
                                 + resource_obj.total_gpu_memory + "MB; Total used " +
                                 resource_obj.total_gpu_memory_used + "MB")
+
+                        var task_type = $("#task-type-" + id).text()
+                        console.log("task type " + task_type);
+                        if (task_type == 'train') {
+                            $("#field-1-" + id).text("Iteration: " + status_obj.iteration)
+                            $("#field-2-" + id).text("Loss: " + status_obj.loss)
+                        } else if (task_type == 'test') {
+                            $("#field-1-" + id).text("Time Remains: " + status_obj.time_remains)
+                            $("#field-2-" + id).text("Request Number: " + status_obj.request_number)
+                        }
+
                         if (status_obj.status == "FINISH") {
                             $("#finish-" + id).val("done");
                         }

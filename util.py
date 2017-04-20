@@ -5,6 +5,7 @@ import subprocess
 import re
 import pika
 import socket
+import requests
 
 
 def get_file_size(file_name):
@@ -118,5 +119,12 @@ def get_available_port():
     return port
 
 
-
+def get_request_result(url, payload, files, file_name):
+    r = requests.post(url, data=payload, files=files)
+    f = open(file_name, 'wb')
+    chunk_size = 1000
+    for chunk in r.iter_content(chunk_size=chunk_size):
+        f.write(chunk)
+    f.close()
+    print 'write file finished'
 
