@@ -8,37 +8,47 @@
         <thead>
         <tr>
             <th class="table_center">Classifier Name</th>
-            <th class="table_center">Videos</th>
-            <th class="table_center">Labels</th>
+            <th class="table_center">Dataset</th>
             <th class="table_center">Status</th>
-            <th class="table_center">Export</th>
+            <th class="table_center">Iterative Training</th>
+            <th class="table_center">Detection</th>
             <th class="table_center">Delete</th>
         </tr>
         </thead>
         <tbody>
         {% for classifier in classifiers %}
         <tr class="tr_classifier" id="{{classifier.id}}">
-            <th class="table_center">{{classifier.name}}</th>
+            <th class="table_center">
+                {{classifier.name}}
+                <br>
+                (id: {{classifier.id}})
+                <br>
+                {% if classifier.parent_id != none %}
+                (Parent classifier: {{classifier.parent_id}})
+                {% endif %}
+            </th>
             <th>
-                <ul class="list_videos list_no_style">
+                <h5>Videos</h5>
+                <ul class="list_videos">
                     {% for video in classifier.videos %}
                     <li class="item_video">
                         <p class="item_video_name">{{video.name}}</p>
                     </li>
                     {% endfor%}
                 </ul>
-            </th>
-            <th>
-                <ul class="list_labels  list_no_style">
+                <h5>Labels</h5>
+                <ul class="list_labels">
                     {% for label in classifier.labels %}
                     <li class="item_label">
                         <p class="item_video_name"> {{label}}</p>
                     </li>
                     {% endfor%}
                 </ul>
+
             </th>
             <th class="th-status">
                 <input hidden id="finish-{{classifier.id}}" name="finish-{{classifier.id}}" value="">
+                <p>Classifier Type:</p>
                 <p id="task-type-{{classifier.id}}">{{classifier.task_type}}</p>
                 <p id="status-{{classifier.id}}"></p>
                 <p id="cpu-{{classifier.id}}"></p>
@@ -47,12 +57,47 @@
 
                 <p id="field-1-{{classifier.id}}"></p>
                 <p id="field-2-{{classifier.id}}"></p>
-
+                <p id="field-3-{{classifier.id}}"></p>
 
             </th>
-            <th class="table_center">
+
+            <th class="table_center th-iterative">
+                {% if classifier.task_type == 'train' %}
+                <form class="item_iterative_classifier" id="iterative-{{classifier.id}}" action="create_iterative" method="POST">
+                    <p>Train an iterative classifier based on this classifier</p>
+                    <input hidden name="base_classifier_id" value="{{classifier.id}}">
+
+                    <div class="form-group form-inline">
+
+                    <div class="form-group form-inline">
+                        <label for="classifier_name">Name:</label>
+                        <input name="classifier_name" class="form-control" value="{{classifier.name}}_iterative">
+                    </div>
+
+                        <label for="param_videos">Choose Videos:</label>
+
+                        <select class="iterative_video-select" name="character" multiple="multiple">
+                        </select>
+                        <input class="iterative_param_videos" type="text" name="video_list" hidden>
+                    </div>
+
+                    <div class="form-group form-inline">
+                        <label for="epoch">Epoch:</label>
+                        <input type="number" name="epoch" class="form-control"
+                               value="100"><br>
+                    </div>
+
+                    <button class="btn" type="submit">Begin Training</button>
+                </form>
+                {% endif %}
+            </th>
+
+
+            <th class="table_center th-detection">
                 {% if classifier.task_type == 'train' %}
                 <form class="item_test_classifier_long" action="create_test" method="POST">
+                    <p>Launch long-running classifier (after launching, you can call the HTTP request on the port
+                        displayed)</p>
                     <input hidden name="base_classifier_id" value="{{classifier.id}}">
                     <input hidden name="long_running" value="true">
                     <div class="form-group form-inline">
@@ -63,7 +108,9 @@
                     <button class="btn" type="submit">Launch Classifier</button>
                 </form>
 
-                <form class="item_test_classifier_short" action="create_test" method="POST" enctype="multipart/form-data">
+                <form class="item_test_classifier_short" action="create_test" method="POST"
+                      enctype="multipart/form-data">
+                    <p>Test the classifier (detect the image and display the result online)</p>
                     <input hidden name="base_classifier_id" value="{{classifier.id}}">
                     <input hidden name="long_running" value="false">
                     <input hidden name="format" value="img">
@@ -151,6 +198,13 @@
                 searchplaceholder: 'Choose videos for the classifier'
             }
         });
+        $('.iterative_video-select').searchableOptionList({
+            data: 'available_videos',
+            texts: {
+                searchplaceholder: 'Choose videos for the classifier'
+            }
+        });
+
         $('#label-select').searchableOptionList({
             data: 'available_labels',
             texts: {
@@ -199,6 +253,25 @@
 
         console.log(videos);
         console.log(network_type);
+    });
+
+    $(".item_iterative_classifier").submit(function (e) {
+
+        var video_select = $($(this).find('.iterative_video-select')[0]);
+        var selected_videos = video_select.searchableOptionList().getSelection();
+
+        var videos = "";
+        for (var i = 0; i < selected_videos.length; i++) {
+            if (i == selected_videos.length - 1) {
+                videos += (selected_videos[i].value);
+            } else {
+                videos += (selected_videos[i].value + ",");
+            }
+        }
+
+        $($(this).find('.iterative_param_videos')[0]).val(videos);
+
+        console.log(videos);
     });
 
     $(".item_delete_classifier").submit(function (e) {
@@ -254,8 +327,7 @@
                         $("#memory-" + id).text("Memory: " + trim(String(resource_obj.process_memory_percentage), 5) + "%; Total: "
                                 + total_memory_mb + "MB");
                         $("#gpu-" + id).text("GPU: " + resource_obj.process_gpu_memory_used + "MB; Total: "
-                                + resource_obj.total_gpu_memory + "MB; Total used " +
-                                resource_obj.total_gpu_memory_used + "MB")
+                                + resource_obj.total_gpu_memory_used + "/" + resource_obj.total_gpu_memory + "MB;")
 
                         var task_type = $("#task-type-" + id).text()
                         console.log("task type " + task_type);
@@ -265,6 +337,7 @@
                         } else if (task_type == 'test') {
                             $("#field-1-" + id).text("Time Remains: " + status_obj.time_remains)
                             $("#field-2-" + id).text("Request Number: " + status_obj.request_number)
+                            $("#field-3-" + id).text("Host Port: " + status_obj.host_port)
                         }
 
                         if (status_obj.status == "FINISH") {

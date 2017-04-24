@@ -15,6 +15,7 @@ import re
 import json
 import random
 import config
+import requests
 
 app = Celery('tpod_task', broker='amqp://localhost', backend='rpc://localhost')
 logger = get_task_logger('tpod')
@@ -81,6 +82,7 @@ class TPODBaseTask(Task):
         try:
             if self.proc is None:
                 self.proc = psutil.Process(self.pid)
+            ret["pid"] = self.pid
 
             v_mem_info = psutil.virtual_memory()
             gpu_total_used, gpu_total, gpu_process_usage = util.get_gpu_info(self.pid)
@@ -172,7 +174,7 @@ class TPODTrainingTask(TPODBaseTask):
 
 
 @app.task(bind=True, base=TPODTrainingTask)
-def train_task(self, classifier_id, train_set_name, epoch, weights):
+def train_task(self, base_image_name, classifier_id, train_set_name, epoch, weights):
     self.init_task(classifier_id, train_set_name, epoch, weights)
     # example command inside the docker
     # /usr/bin/python tools/tpod_train_net.py --weights /VGG_CNN_M_1024.v2.caffemodel --output_dir .
@@ -184,7 +186,6 @@ def train_task(self, classifier_id, train_set_name, epoch, weights):
     # proc = subprocess.Popen(['nvidia-docker', 'run', '--name', docker_name, 'nvidia/cuda', 'nvidia-smi'])
 
     docker_data_volume = '/home/suanmiao/workspace/tpod/dataset/:/dataset'
-    base_image_name = 'faster-rcnn-primitive'
     proc = subprocess.Popen(['nvidia-docker', 'run', '-v', docker_data_volume, '--name', docker_name,
                              base_image_name, '/usr/bin/python', 'tools/tpod_train_net.py', '--weights', str(weights),
                              '--output_dir', '.', '--iter', str(epoch), '--train_set_name', str(train_set_name)])
@@ -234,11 +235,13 @@ class TPODTestTask(TPODBaseTask):
         self.time_remains = 10
         # the number of request perceived from the log
         self.request_number = 0
+        self.host_port = -1
 
-    def init_task(self, classifier_id, time_remains=10):
+    def init_task(self, classifier_id, host_port, time_remains=10):
         self.task_type = TASK_TYPE_TEST
         self.classifier_id = classifier_id
         self.time_remains = time_remains
+        self.host_port = host_port
 
         self.update_status(STATE_START)
         self.init_message_callback()
@@ -247,6 +250,7 @@ class TPODTestTask(TPODBaseTask):
         ret = super(TPODTestTask, self).get_process_status()
         ret['request_number'] = self.request_number
         ret['time_remains'] = self.time_remains
+        ret['host_port'] = self.host_port
         return ret
 
     def read_logs(self):
@@ -275,7 +279,7 @@ class TPODTestTask(TPODBaseTask):
 
 @app.task(bind=True, base=TPODTestTask)
 def test_task(self, classifier_id, docker_image_id, time_remains, host_port):
-    self.init_task(classifier_id, time_remains)
+    self.init_task(classifier_id, host_port, time_remains)
 
     # since this is a container based on a existing classifier's image,
     # and there might be multiple test task on one classifier,
@@ -310,18 +314,22 @@ def test_task(self, classifier_id, docker_image_id, time_remains, host_port):
     top = self.container.top()
     self.pid = int(top['Processes'][0][1])
 
-    print 'launching training task with pid %s, docker_image_name %s, time_remains %s, host_port %s' % (str(self.pid),
-                                                                                                        str(
-                                                                                                            docker_image_id),
-                                                                                                        str(
-                                                                                                            time_remains),
-                                                                                                        str(host_port))
+    print 'launching training task with pid %s, docker_image_name %s, time_remains %s, host_port %s' % \
+          (str(self.pid), str(docker_image_id), str(time_remains), str(host_port))
     # begin monitoring the status of the process
     while self.container.status == 'running' and psutil.pid_exists(self.pid) and self.time_remains > 0:
         self.read_logs()
         self.update_status(STATE_PROGRESS)
         time.sleep(1 / float(self.monitor_rate))
         self.time_remains -= (1 / float(self.monitor_rate))
+
+    # if the test classifier exist, remove it
+    url = "http://" + config.localhost + "/classifier/delete"
+    payload = {
+        'classifier_id': str(classifier_id)
+    }
+    r = requests.post(url, data=payload)
+    print 'remove the test classifier, response: %s ' + str(r.content)
 
     # since this is a test task, just remove it
     # stop and remove the container

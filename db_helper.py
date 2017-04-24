@@ -149,6 +149,7 @@ def get_classifiers_of_user(user_id):
             'videos': videos,
             'labels': labels,
             'task_type': classifier.task_type,
+            'parent_id': classifier.parent_id,
         }
         print 'get task type %s' % str(classifier.task_type)
 

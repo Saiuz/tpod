@@ -5,7 +5,7 @@ from flask import Flask, request, render_template, session, redirect, url_for, f
 from flask import jsonify
 import db_util
 import db_helper
-from forms import CreateClassifierForm, DeleteClassifierForm, CreateTestClassifierForm
+from forms import *
 import response_util
 import classifier_controller as controller
 import json
@@ -14,6 +14,7 @@ import time
 import random
 import util
 from flask import send_file
+from vatic import turkic_replacement
 
 classifier_page = Blueprint('classifier_page', __name__, url_prefix='/classifier', template_folder='templates',
                             static_url_path='/static', static_folder='static')
@@ -113,6 +114,27 @@ def create_training_classifier():
     return response_util.json_error_response(msg=str(form.errors))
 
 
+@classifier_page.route("/create_iterative", methods=["POST"])
+@login_required
+def create_iterative_classifier():
+    form = CreateIterativeClassifierForm(request.form)
+    if form.validate():
+        base_classifier_id = form.base_classifier_id.data
+        session = db_util.renew_session()
+        classifier = session.query(Classifier).filter(Classifier.id == base_classifier_id).first()
+        if not classifier:
+            session.close()
+            return response_util.json_error_response(msg='base classifier not exist')
+        session.close()
+        epoch = form.epoch.data
+        video_list = form.video_list.data
+        video_list = video_list.split(',')
+        controller.create_iterative_training_classifier(current_user, base_classifier_id, form.classifier_name.data, epoch, video_list)
+
+        return redirect(request.referrer)
+    return response_util.json_error_response(msg=str(form.errors))
+
+
 @classifier_page.route("/create_test", methods=["POST"])
 @login_required
 def create_test_classifier():
@@ -150,14 +172,21 @@ def create_test_classifier():
             else:
                 # wait for the container to start
                 time.sleep(5)
+                confidence = 0.61
+                if 'confidence' in request.form:
+                    confidence = str(request.form['confidence'])
+                else:
+                    print 'input confidence %s ' % str(confidence)
 
                 # make the request and send back the file
                 ret_file_path = '/tmp/' + str(random.getrandbits(32)) + ".png"
                 payload = {
-                    'time_remains': 100,
+                    'time_remains': 10,
                     'base_classifier_id': base_classifier_id,
-                    'format': 'img'
+                    'format': 'img',
+                    'confidence': confidence
                 }
+
                 url = 'http://localhost:' + str(host_port) + "/detect"
                 files = {}
                 print 'get files ' + str(request.files)

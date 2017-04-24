@@ -73,6 +73,12 @@ h5 {
 }
 
 .th-status{
-    min-width:400px;
+    min-width:300px;
+    font-size: 12px;
+}
+
+.th-detection{
+    width:300px;
+    font-size: 12px;
 }
 

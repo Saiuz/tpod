@@ -4,6 +4,10 @@ from models import *
 from tpod_models import *
 import shutil
 import db_util
+from vatic import merge
+import velocity
+import time
+import util
 
 
 def delete_video(video_id):
@@ -274,40 +278,185 @@ def image_exist(img_path):
 
 def publish():
     return None
-    # try:
-    #     query = session.query(Job)
-    #     query = query.filter(Job.ready == True)
-    #     query = query.filter(Job.published == False)
-    #     for hit in query:
-    #         hit.publish()
-    #         print hit.offlineurl(config.localhost)
-    #         print "Published {0}".format(hit.hitid)
-    #         session.add(hit)
-    #         session.commit()
-    # except Exception as e:
-    #     print e
-    # finally:
-    #     session.commit()
-    #     session.close()
+
+# ---------- below is code about dump, these two classes are selected from turkic
 
 
-    # try:
-    #     query = session.query(HIT)
-    #     query = query.join(HITGroup)
-    #     query = query.filter(HITGroup.offline == args.offline)
-    #     query = query.filter(HIT.ready == True)
-    #     query = query.filter(HIT.published == False)
-    #     for hit in query:
-    #         if args.offline:
-    #             print hit.offlineurl(config.localhost)
-    #         else:
-    #             hit.publish()
-    #             print "Published {0}".format(hit.hitid)
-    #             session.add(hit)
-    #             session.commit()
-    # finally:
-    #     session.commit()
-    #     session.close()
+class Tracklet(object):
+    def __init__(self, label, labelid, userid, paths, boxes, velocities):
+        self.label = label
+        self.paths = paths
+        self.boxes = sorted(boxes, key = lambda x: x.frame)
+        self.velocities = velocities
+        self.labelid = labelid
+        self.userid = userid
+
+    def bind(self):
+        for path in self.paths:
+            self.boxes = Path.bindattributes(path.attributes, self.boxes)
 
 
+def get_merged_data(video, domerge=True, mergemethod=None, mergethreshold=0.5, groundplane=False):
+
+    response = []
+    if domerge:
+        for boxes, paths in merge.merge(video.segments,
+                                        method=mergemethod,
+                                        threshold = mergethreshold,
+                                        groundplane = groundplane):
+            if (paths[0].label !=None):
+                tracklet = Tracklet(
+                    paths[0].label.text,
+                    paths[0].labelid,
+                    paths[0].userid,
+                    paths,
+                    boxes,
+                    {}
+                )
+                response.append(tracklet)
+    else:
+        for segment in video.segments:
+            for job in segment.jobs:
+                if not job.useful:
+                    continue
+                for path in job.paths:
+                    tracklet = Tracklet(
+                        path.label.text,
+                        path.labelid,
+                        path.userid,
+                        [path],
+                        path.getboxes(),
+                        {}
+                    )
+                    response.append(tracklet)
+
+    interpolated = []
+    for track in response:
+        path = vision.track.interpolation.LinearFill(track.boxes)
+        # jj: fix generated flag. the old generated flag only means that frame
+        # is linearly interpolated. but in tpod, tracked frame should also
+        # be labeled as generated
+        # two loops. inefficient...
+        for mbx in track.boxes:
+            for path_mbx in path:
+                if mbx.frame == path_mbx.frame:
+                    path_mbx.generated = path_mbx.generated or mbx.generated
+
+        velocities = velocity.velocityforboxes(path)
+        tracklet = Tracklet(track.label, track.labelid, track.userid,
+                                        track.paths, path, velocities)
+        interpolated.append(tracklet)
+    response = interpolated
+
+    for tracklet in response:
+        tracklet.bind()
+
+    return response
+
+
+# the basic structure: class is separated by '.' label is separated by ';' coordination is separated by ','
+def generate_frame_label(frame_labels):
+    if len(frame_labels) == 0:
+        return '\n'
+    else:
+        line = ''
+        # first, travel through all classes
+        for ic, item_class in enumerate(frame_labels):
+            # then, travel through labels under that class
+            if len(item_class) > 0:
+                for il, label in enumerate(item_class):
+                    str_label = ','.join(label)
+                    line += str_label
+                    if il != len(item_class) - 1:
+                        line += ';'
+            if ic != len(frame_labels) - 1:
+                line += '.'
+        return line
+
+
+def dump_image_and_label_files(video_ids, label_name_array):
+    session = db_util.renew_session()
+    if not os.path.exists(config.IMAGE_LIST_PATH):
+        os.makedirs(config.IMAGE_LIST_PATH)
+    if not os.path.exists(config.LABEL_LIST_PATH):
+        os.makedirs(config.LABEL_LIST_PATH)
+    if not os.path.exists(config.LABEL_NAME_PATH):
+        os.makedirs(config.LABEL_NAME_PATH)
+
+    print 'specified labels ' + str(label_name_array)
+    timestamp = str(long(time.time()))
+    image_file_path = config.IMAGE_LIST_PATH + timestamp + '.txt'
+    label_file_path = config.LABEL_LIST_PATH + timestamp + '.txt'
+    label_name_path = config.LABEL_NAME_PATH + timestamp + '.txt'
+
+    def getdata(video_id):
+        video = session.query(Video).filter(Video.id == video_id)
+        if video.count() == 0:
+            print "Video {0} does not exist!".format(video_id)
+            raise SystemExit()
+        video = video.one()
+        groundplane = False
+        mergemethod = merge.getpercentoverlap(groundplane)
+        merge_threshold = 0.5
+        return video, get_merged_data(video, True, mergemethod, merge_threshold, False)
+
+    image_list_array = []
+    label_list_array = []
+    for video_id in video_ids:
+        video, data = getdata(video_id)
+        total_frames = video.totalframes
+        extract_path = video.extract_path
+        # for each video, we create a dict, to store all necessary labels
+        # the key is the label name, the value is an array, since there might be multiple boxes for one label
+        label_dict = {}
+        for track in data:
+            if str(track.label) in label_name_array:
+                if str(track.label) not in label_dict:
+                    label_dict[str(track.label)] = []
+                label_dict[str(track.label)].append(track.boxes)
+
+        # after the traverse, w get all valid labels for that video
+        iterators = []
+        for label_name in label_name_array:
+            if label_name in label_dict:
+                iterators.append(label_dict[label_name])
+            else:
+                iterators.append([])
+        # generate labels for each frame
+        for frame in range(0, total_frames):
+            img_path = Video.getframepath(frame, extract_path)
+            if os.path.exists(img_path) and util.is_image_file(img_path):
+                image_list_array.append(img_path)
+                # traverse through the iterators, to check each label
+                current_frame_labels = []
+                for iterator in iterators:
+                    if len(iterator) == 0:
+                        current_frame_labels.append([])
+                    else:
+                        label_boxes = []
+                        for box_total in iterator:
+                            if frame >= len(box_total):
+                                break
+                            box = box_total[frame]
+                            x1 = box.xtl
+                            y1 = box.ytl
+                            w = (box.xbr - box.xtl)
+                            h = (box.ybr - box.ytl)
+                            item = [str(x1), str(y1), str(w), str(h)]
+                            label_boxes.append(item)
+                        current_frame_labels.append(label_boxes)
+                # generate the format for that frame of labels
+                label_list_array.append(generate_frame_label(current_frame_labels))
+
+    total_frames = len(image_list_array)
+    print 'total length of image %s, length of label %s, total frames %s' % (
+        str(len(image_list_array)), str(len(label_list_array)), str(total_frames))
+    util.write_list_to_file(image_list_array, image_file_path)
+    util.write_list_to_file(label_list_array, label_file_path)
+
+    # create the labels.txt file
+    util.write_list_to_file(label_name_array, label_name_path)
+
+    session.close()
+    return image_file_path, label_file_path, label_name_path
 

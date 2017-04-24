@@ -46,6 +46,24 @@ class DeleteClassifierForm(FlaskForm):
         return True
 
 
+class CreateIterativeClassifierForm(FlaskForm):
+    base_classifier_id = StringField('base_classifier_id', validators=[DataRequired()])
+    classifier_name = StringField('classifier_name', validators=[DataRequired()])
+    epoch = IntegerField('epoch', validators=[DataRequired()])
+    video_list = StringField('video_list', validators=[DataRequired()])
+
+    def __init__(self, *args, **kwargs):
+        kwargs['csrf_enabled'] = False
+        FlaskForm.__init__(self, *args, **kwargs)
+
+    def validate(self):
+        rv = FlaskForm.validate(self)
+        if not rv:
+            return False
+
+        return True
+
+
 class CreateClassifierForm(FlaskForm):
     classifier_name = StringField('classifier_name', validators=[DataRequired()])
     epoch = IntegerField('epoch', validators=[DataRequired()])
