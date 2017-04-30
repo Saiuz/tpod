@@ -7,12 +7,11 @@
     <table class="table table_classifier">
         <thead>
         <tr>
-            <th class="table_center">Classifier Name</th>
-            <th class="table_center">Dataset</th>
+            <th class="table_center">Classifier Overview</th>
             <th class="table_center">Status</th>
             <th class="table_center">Iterative Training</th>
             <th class="table_center">Detection</th>
-            <th class="table_center">Delete</th>
+            <th class="table_center">Evaluation</th>
         </tr>
         </thead>
         <tbody>
@@ -26,8 +25,8 @@
                 {% if classifier.parent_id != none %}
                 (Parent classifier: {{classifier.parent_id}})
                 {% endif %}
-            </th>
-            <th>
+
+                <br/>
                 <h5>Videos</h5>
                 <ul class="list_videos">
                     {% for video in classifier.videos %}
@@ -36,6 +35,7 @@
                     </li>
                     {% endfor%}
                 </ul>
+                <br/>
                 <h5>Labels</h5>
                 <ul class="list_labels">
                     {% for label in classifier.labels %}
@@ -44,6 +44,11 @@
                     </li>
                     {% endfor%}
                 </ul>
+                <br/>
+                <form class="item_delete_classifier" action="delete" method="POST">
+                    <input hidden name="classifier_id" value="{{classifier.id}}">
+                    <button class="btn btn-danger" type="submit">Delete Classifier</button>
+                </form>
 
             </th>
             <th class="th-status">
@@ -63,16 +68,17 @@
 
             <th class="table_center th-iterative">
                 {% if classifier.task_type == 'train' %}
-                <form class="item_iterative_classifier" id="iterative-{{classifier.id}}" action="create_iterative" method="POST">
+                <form class="item_iterative_classifier" id="iterative-{{classifier.id}}" action="create_iterative"
+                      method="POST">
                     <p>Train an iterative classifier based on this classifier</p>
                     <input hidden name="base_classifier_id" value="{{classifier.id}}">
 
                     <div class="form-group form-inline">
 
-                    <div class="form-group form-inline">
-                        <label for="classifier_name">Name:</label>
-                        <input name="classifier_name" class="form-control" value="{{classifier.name}}_iterative">
-                    </div>
+                        <div class="form-group form-inline">
+                            <label for="classifier_name">Name:</label>
+                            <input name="classifier_name" class="form-control" value="{{classifier.name}}_iterative">
+                        </div>
 
                         <label for="param_videos">Choose Videos:</label>
 
@@ -91,7 +97,6 @@
                 </form>
                 {% endif %}
             </th>
-
 
             <th class="table_center th-detection">
                 {% if classifier.task_type == 'train' %}
@@ -129,11 +134,46 @@
 
                 {% endif %}
             </th>
-            <th class="table_center">
-                <form class="item_delete_classifier" action="delete" method="POST">
+            <th>
+                {% if classifier.task_type == 'train' %}
+                <form class="item_evaluate_classifier" id="evaluation-{{classifier.id}}" action="create_evaluation"
+                      method="POST">
+                    <p>Evaluate the classifier against some datasets, now support ROC curve</p>
                     <input hidden name="classifier_id" value="{{classifier.id}}">
-                    <button class="btn btn-danger" type="submit">Delete</button>
+
+                    <div class="form-group form-inline">
+                        <div class="form-group form-inline">
+                            <label>Name:</label>
+                            <input name="name" class="form-control" value="">
+                        </div>
+
+                        <label for="param_videos">Choose Labeled Videos:</label>
+
+                        <select class="evaluation_video-select" name="character">
+                        </select>
+                        <input class="evaluation_param_videos" type="text" name="video_id" hidden>
+                    </div>
+
+                    <button class="btn" type="submit">Begin Evaluation</button>
                 </form>
+
+                </br>
+                <h5>Evaluation Set</h5>
+                <ul class="list_evaluation">
+                    {% for evaluation in classifier.evaluation_sets %}
+                    <li class="item_evaluation">
+                        <p class="item_evaluation_name">{{evaluation.name}}</p>
+                        <form class="item_delete_evaluation" action="delete_evaluation" method="POST">
+                            <input hidden name="evaluation_id" value="{{evaluation.id}}">
+                            <button class="btn btn-danger" type="submit">Delete Evaluation</button>
+                        </form>
+
+                    </li>
+                    {% endfor%}
+                </ul>
+                <br/>
+                {% endif %}
+
             </th>
         </tr>
         </tbody>
@@ -205,6 +245,13 @@
             }
         });
 
+        $('.evaluation_video-select').searchableOptionList({
+            data: 'available_evaluation_videos',
+            texts: {
+                searchplaceholder: 'Choose videos for the classifier'
+            }
+        });
+
         $('#label-select').searchableOptionList({
             data: 'available_labels',
             texts: {
@@ -270,6 +317,21 @@
         }
 
         $($(this).find('.iterative_param_videos')[0]).val(videos);
+
+        console.log(videos);
+    });
+
+    $(".item_evaluate_classifier").submit(function (e) {
+
+        var video_select = $($(this).find('.evaluation_video-select')[0]);
+        var selected_videos = video_select.searchableOptionList().getSelection();
+
+        var video_id = "";
+        for (var i = 0; i < selected_videos.length; i++) {
+            video_id += (selected_videos[i].value);
+        }
+
+        $($(this).find('.evaluation_param_videos')[0]).val(video_id);
 
         console.log(videos);
     });

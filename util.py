@@ -64,6 +64,8 @@ def write_list_to_file(array, file_path):
 |    0      2293    G   /usr/bin/X                                      48MiB |      │
 +-----------------------------------------------------------------------------+      │
 '''
+
+
 def get_gpu_info(pid):
     output = subprocess.check_output(['nvidia-smi'])
     total = 0

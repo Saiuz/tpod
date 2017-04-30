@@ -4,9 +4,25 @@ from wtforms import PasswordField, IntegerField
 from wtforms.validators import DataRequired, EqualTo
 from wtforms import ValidationError
 import db_util
-from tpod_models import User, Classifier
+from tpod_models import User, Classifier, EvaluationSet
 import wtforms.validators
 from vatic.models import *
+
+
+class CreateEvaluationForm(FlaskForm):
+    classifier_id = StringField('classifier_id', validators=[DataRequired()])
+    name = StringField('name', validators=[DataRequired()])
+    video_id = StringField('video_id', validators=[DataRequired()])
+
+    def __init__(self, *args, **kwargs):
+        kwargs['csrf_enabled'] = False
+        FlaskForm.__init__(self, *args, **kwargs)
+
+    def validate(self):
+        rv = FlaskForm.validate(self)
+        if not rv:
+            return False
+        return True
 
 
 class CreateTestClassifierForm(FlaskForm):
@@ -22,6 +38,27 @@ class CreateTestClassifierForm(FlaskForm):
         rv = FlaskForm.validate(self)
         if not rv:
             return False
+        return True
+
+
+class DeleteEvaluationForm(FlaskForm):
+    evaluation_id = StringField('evaluation_id', validators=[DataRequired()])
+
+    def __init__(self, *args, **kwargs):
+        kwargs['csrf_enabled'] = False
+        FlaskForm.__init__(self, *args, **kwargs)
+
+    def validate(self):
+        rv = FlaskForm.validate(self)
+        if not rv:
+            return False
+        session = db_util.renew_session()
+        evaluation = session.query(EvaluationSet).filter(EvaluationSet.id == self.evaluation_id.data).first()
+        if not evaluation:
+            self.evaluation_id.errors.append('evaluation not exist')
+            session.close()
+            return False
+        session.close()
         return True
 
 

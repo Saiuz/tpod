@@ -5,9 +5,9 @@ import time
 import config
 import db_util
 import util
-from tpod_models import Classifier
+from tpod_models import Classifier, EvaluationSet
 from vatic.models import Video, Label, Box, Path
-from celery_tasks import train_task, test_task
+from celery_tasks import train_task, test_task, evaluation_task
 import random
 from celery_model import TaskStatusRecord
 from sqlalchemy import desc
@@ -338,6 +338,7 @@ def create_short_running_test_classifier(base_classifier_id, time_remains=10):
 
     base_classifier = session.query(Classifier).filter(Classifier.id == base_classifier_id).first()
     if not base_classifier:
+        session.close()
         return None
     session.close()
 
@@ -349,6 +350,41 @@ def create_short_running_test_classifier(base_classifier_id, time_remains=10):
     print 'launched the test docker with task id %s ' % str(task_id)
     return host_port
 
+
+def create_evaluation(classifier_id, name, video_id):
+    session = db_util.renew_session()
+
+    classifier = session.query(Classifier).filter(Classifier.id == classifier_id).first()
+    video = session.query(Video).filter(Video.id == video_id).first()
+    if not classifier or not video:
+        session.close()
+        print 'classifier or video not exist'
+        return None
+    evaluation_set = EvaluationSet(name=name)
+    evaluation_set.videos.append(video)
+
+    label_list = []
+    for label in video.labels:
+        label_list.append(str(label.text))
+
+    classifier.evaluation_sets.append(evaluation_set)
+    session.add(evaluation_set)
+    session.commit()
+    print 'created evaluation set with name %s id %s ' % (str(name), str(evaluation_set.id))
+    evaluation_result_name = str(evaluation_set.id)
+
+    docker_image_id = classifier.task_id
+
+    # prepare label data
+    image_list_file_path, label_list_file_path, label_name_file_path = turkic_replacement.dump_image_and_label_files(
+        [video_id], label_list)
+
+    # note: this evaluation set name is the unique name to indicate the file name for the label, video,
+    # not the name of the data entity
+    evaluation_set_name = os.path.splitext(ntpath.basename(str(image_list_file_path)))[0]
+    evaluation_task.apply_async((classifier_id, docker_image_id, evaluation_set_name, evaluation_result_name))
+
+    session.close()
 
 # class TaskStatusRecord(Base):
 #     __tablename__   = "task_status_records"

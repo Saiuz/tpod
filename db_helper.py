@@ -5,8 +5,8 @@ from tpod_models import *
 
 def generate_label_obj(label):
     obj = {
-        'name':label.text,
-        'id':label.id,
+        'name': label.text,
+        'id': label.id,
         'labeled_frame': get_labeled_frames_count(label)
     }
     return obj
@@ -36,8 +36,8 @@ def get_labeled_frames_count(label):
 
 def generate_video_obj(video):
     obj = {
-        'name':video.slug,
-        'id':video.id,
+        'name': video.slug,
+        'id': video.id,
         'labels': get_labels_of_video(video.id),
         'job_urls': get_all_job_urls(video)
     }
@@ -94,8 +94,31 @@ def get_available_videos(user_id):
     result = []
     for video in query_result:
         obj = {
-            'name':video.slug,
-            'id':video.id,
+            'name': video.slug,
+            'id': video.id,
+        }
+        result.append(obj)
+    session.close()
+    return result
+
+
+def get_available_evaluation_videos(user_id):
+    session = db_util.renew_session()
+    query_result = session.query(Video).filter(Video.owner_id == user_id).all()
+    result = []
+    for video in query_result:
+        labels = get_labels_of_video(video.id)
+        if len(labels) == 0:
+            continue
+        total_labeled_frame_count = 0
+        for label in labels:
+            if 'labeled_frame' in label:
+                total_labeled_frame_count += int(label['labeled_frame'])
+        if total_labeled_frame_count == 0:
+            continue
+        obj = {
+            'name': video.slug,
+            'id': video.id,
         }
         result.append(obj)
     session.close()
@@ -111,7 +134,7 @@ def get_available_labels():
         obj = {
             'video_name': str(video_name),
             'name': str(label.text),
-            'id':label.id,
+            'id': label.id,
             'labeled_frame': get_labeled_frames_count(label)
         }
         result.append(obj)
@@ -124,7 +147,7 @@ def get_videos_labels_of_classifier(classifier):
     videos = []
     for video in classifier.videos:
         video_obj = {
-            'name':video.slug,
+            'name': video.slug,
             'id': video.id,
         }
         videos.append(video_obj)
@@ -137,25 +160,36 @@ def get_videos_labels_of_classifier(classifier):
     return videos, labels
 
 
+def get_evaluations_of_classifier(classifier):
+    ret = []
+    for evaluation in classifier.evaluation_sets:
+        eval_obj = {
+            'name': evaluation.name,
+            'id': evaluation.id,
+        }
+        ret.append(eval_obj)
+    return ret
+
+
 def get_classifiers_of_user(user_id):
     session = db_util.renew_session()
     query_result = session.query(Classifier).filter(Classifier.owner_id == user_id).all()
     result = []
     for classifier in query_result:
         videos, labels = get_videos_labels_of_classifier(classifier)
+        evaluation_sets = get_evaluations_of_classifier(classifier)
+        print 'get evaluation %s ' % str(evaluation_sets)
         obj = {
-            'name':classifier.name,
+            'name': classifier.name,
             'id': classifier.id,
             'videos': videos,
             'labels': labels,
             'task_type': classifier.task_type,
             'parent_id': classifier.parent_id,
+            'evaluation_sets': evaluation_sets
         }
         print 'get task type %s' % str(classifier.task_type)
 
         result.append(obj)
     session.close()
     return result
-
-
-

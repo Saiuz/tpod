@@ -10,6 +10,7 @@ EXTRACT_PATH = 'dataset/extract/'
 IMAGE_LIST_PATH = 'dataset/image_list/'
 LABEL_LIST_PATH = 'dataset/label_list/'
 LABEL_NAME_PATH = 'dataset/label_name/'
+EVALUATION_PATH = 'eval/'
 # probably no need to mess below this line
 
 NETWORK_TYPE_FASTER_RCNN = 'faster_rcnn'

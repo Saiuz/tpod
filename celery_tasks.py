@@ -23,11 +23,13 @@ logger = get_task_logger('tpod')
 TASK_TYPE_NONE = 1
 TASK_TYPE_TRAIN = 2
 TASK_TYPE_TEST = 3
+TASK_TYPE_EVALUATION = 4
 
 STATE_NONE = 'NONE'
 STATE_START = 'START'
 STATE_PROGRESS = 'PROGRESS'
 STATE_FINISH = 'FINISH'
+STATE_ERROR = 'ERROR'
 
 
 class TPODBaseTask(Task):
@@ -169,7 +171,6 @@ class TPODTrainingTask(TPODBaseTask):
                 self.training_finish_detected = True
                 self.iteration = self.total_iteration
                 print 'training finish signal detected'
-
         return log
 
 
@@ -215,16 +216,19 @@ def train_task(self, base_image_name, classifier_id, train_set_name, epoch, weig
         self.read_logs()
         self.update_status(STATE_PROGRESS)
         time.sleep(1 / float(self.monitor_rate))
+    if self.iteration <= 0:
+        # something wrong happened during launch
+        self.update_status('ERROR during launch')
+    else:
+        # works correctly, commit the image
+        commit_message = 'commit from task %s, at time %s ' % (str(self.task_id), str(datetime.datetime.now()))
+        self.container.commit(author='tpod_task', message=commit_message, repository=docker_name)
 
-    commit_message = 'commit from task %s, at time %s ' % (str(self.task_id), str(datetime.datetime.now()))
-    self.container.commit(author='tpod_task', message=commit_message, repository=docker_name)
-
+        self.update_status(STATE_FINISH)
     # stop and remove the container
     self.container.stop()
     self.container.remove()
-
     proc.terminate()
-    self.update_status(STATE_FINISH)
 
 
 class TPODTestTask(TPODBaseTask):
@@ -256,24 +260,6 @@ class TPODTestTask(TPODBaseTask):
     def read_logs(self):
         log = super(TPODTestTask, self).read_logs()
         # analysis the log
-        # iteration_match = re.findall(r'Iteration\s*(\d+),?\s*loss[^\d]+([\d,\.]+)', log, re.DOTALL)
-        # if iteration_match:
-        #     for match in iteration_match:
-        #         self.iteration = int(match[0])
-        #         self.loss = float(match[1])
-        #         print 'iteration %s, loss %s, total iteration %s' % \
-        #               (str(self.iteration), str(self.loss), str(self.total_iteration))
-        #
-        # # check if training finishes, to avoid accident print of this signal,
-        # # we also check if the iteration is mostly executed
-        # if log is not None and int(self.total_iteration) > 0 and \
-        #                         int(self.total_iteration) - int(self.iteration) <= 40:
-        #     finish_match = re.findall(r'done\ssolving', log, re.DOTALL)
-        #     if len(finish_match) > 0:
-        #         self.training_finish_detected = True
-        #         self.iteration = self.total_iteration
-        #         print 'training finish signal detected'
-        #
         return log
 
 
@@ -281,9 +267,6 @@ class TPODTestTask(TPODBaseTask):
 def test_task(self, classifier_id, docker_image_id, time_remains, host_port):
     self.init_task(classifier_id, host_port, time_remains)
 
-    # since this is a container based on a existing classifier's image,
-    # and there might be multiple test task on one classifier,
-    # thus the docker name should be different from the base one
     docker_name = str(self.task_id)
 
     container_port = 8000
@@ -323,13 +306,89 @@ def test_task(self, classifier_id, docker_image_id, time_remains, host_port):
         time.sleep(1 / float(self.monitor_rate))
         self.time_remains -= (1 / float(self.monitor_rate))
 
-    # if the test classifier exist, remove it
-    url = "http://" + config.localhost + "/classifier/delete"
-    payload = {
-        'classifier_id': str(classifier_id)
-    }
-    r = requests.post(url, data=payload)
-    print 'remove the test classifier, response: %s ' + str(r.content)
+    # since this is a test task, just remove it
+    # stop and remove the container
+    self.container.remove(force=True)
+
+    proc.terminate()
+    self.update_status(STATE_FINISH)
+
+
+class TPODEvaluationTask(TPODBaseTask):
+    def __init__(self):
+        super(TPODEvaluationTask, self).__init__()
+        self.evaluation_set_name = None
+        self.evaluation_result_name = None
+
+    def init_task(self, classifier_id, evaluation_set_name, evaluation_result_name):
+        self.task_type = TASK_TYPE_EVALUATION
+        self.classifier_id = classifier_id
+        self.evaluation_set_name = evaluation_set_name
+        self.evaluation_result_name = evaluation_result_name
+
+        self.update_status(STATE_START)
+        self.init_message_callback()
+
+    def get_process_status(self):
+        ret = super(TPODEvaluationTask, self).get_process_status()
+        # ret['request_number'] = self.request_number
+        return ret
+
+    def read_logs(self):
+        log = super(TPODEvaluationTask, self).read_logs()
+        # analysis the log
+        return log
+
+
+@app.task(bind=True, base=TPODEvaluationTask)
+def evaluation_task(self, classifier_id, docker_image_id, evaluation_set_name, evaluation_result_name):
+    '''
+    :param self:
+    :param classifier_id: the classifier to evaluate
+    :param docker_image_id: the id of the docker image
+    :param evaluation_set_name: the name of evaluation set
+    :param evaluation_result_name: the name for the evaluation result, since it will be stored in the 'evaluation' folder
+    :return: the status of execution
+    '''
+    self.init_task(classifier_id, evaluation_set_name, evaluation_result_name)
+
+    docker_name = str(self.task_id)
+
+    image_name = docker_image_id
+
+    example_cmd = 'python tools/tpod_eval_net.py --gpu 0 --output_dir . --eval_set_name %s --eval_result_name %s ' % \
+                  (str(evaluation_set_name), str(evaluation_result_name))
+    print 'execute: %s ' % str(example_cmd)
+    proc = subprocess.Popen(['nvidia-docker', 'run', '--name',
+                             docker_name, image_name,
+                             'python', 'tools/tpod_eval_net.py', '--gpu', '0', '--output_dir', '.', '--eval_set_name',
+                             str(evaluation_set_name), '--eval_result_name', str(evaluation_result_name)])
+
+    # bind the docker api
+    client = docker.from_env()
+
+    # wait for the docker to launch
+    time.sleep(2)
+    try:
+        self.container = client.containers.get(docker_name)
+    except Exception as e:
+        print 'attach container error: ' + str(e)
+        proc.terminate()
+        self.update_status(STATE_FINISH)
+
+    # actually, the process executing the cmd is not the process the container is running,
+    # thus we need find and rebind the process
+    # since we are running only one process inside the container, it's feasible to hard code the index of the process
+    top = self.container.top()
+    self.pid = int(top['Processes'][0][1])
+
+    print 'launching evaluation task with pid %s, classifier id %s, evaluation set %s, evaluation result name %s' % \
+          (str(self.pid), str(classifier_id), str(evaluation_set_name), str(evaluation_result_name))
+    # begin monitoring the status of the process
+    while self.container.status == 'running' and psutil.pid_exists(self.pid):
+        self.read_logs()
+        self.update_status(STATE_PROGRESS)
+        time.sleep(1 / float(self.monitor_rate))
 
     # since this is a test task, just remove it
     # stop and remove the container

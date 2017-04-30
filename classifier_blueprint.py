@@ -15,6 +15,8 @@ import random
 import util
 from flask import send_file
 from vatic import turkic_replacement
+import parameters
+import util
 
 classifier_page = Blueprint('classifier_page', __name__, url_prefix='/classifier', template_folder='templates',
                             static_url_path='/static', static_folder='static')
@@ -71,6 +73,21 @@ def available_videos():
     return jsonify(ret)
 
 
+@classifier_page.route("/available_evaluation_videos", methods=["POST", "GET"])
+@login_required
+def available_evaluation_videos():
+    videos = db_helper.get_available_evaluation_videos(current_user.id)
+    ret = []
+    for video in videos:
+        obj = {
+            'type': 'option',
+            'label': video['name'],
+            'value': video['id'],
+        }
+        ret.append(obj)
+    return jsonify(ret)
+
+
 @classifier_page.route("/available_classifier_types", methods=["POST", "GET"])
 @login_required
 def available_classifier_types():
@@ -93,11 +110,33 @@ def delete_classifier():
     return response_util.json_error_response(msg=str(form.errors))
 
 
+@classifier_page.route("/delete_evaluation", methods=["POST"])
+@login_required
+def delete_evaluation():
+    form = DeleteEvaluationForm(request.form)
+    if form.validate():
+        session = db_util.renew_session()
+        evaluation = session.query(EvaluationSet).filter(EvaluationSet.id == form.evaluation_id.data).first()
+        session.delete(evaluation)
+        session.commit()
+        session.close()
+        return redirect(request.referrer)
+    return response_util.json_error_response(msg=str(form.errors))
+
+
 @classifier_page.route("/create_train", methods=["POST"])
 @login_required
 def create_training_classifier():
     form = CreateClassifierForm(request.form)
     if form.validate():
+        # first, check if GPU is enough
+        total_used, total, process_usage = util.get_gpu_info(0)
+        current_gpu_memory = float(total) - float(total_used)
+        if current_gpu_memory < parameters.MINIMUM_TRAIN_GPU_MEMORY:
+            return response_util.json_error_response(
+                msg='No enough GPU memory, it requires %s MB, but there is only %s MB' % (
+                str(parameters.MINIMUM_TRAIN_GPU_MEMORY), str(current_gpu_memory)))
+
         classifier_name = form.classifier_name.data
         epoch = form.epoch.data
         network_type = form.network_type.data
@@ -119,6 +158,14 @@ def create_training_classifier():
 def create_iterative_classifier():
     form = CreateIterativeClassifierForm(request.form)
     if form.validate():
+        # first, check if GPU is enough
+        total_used, total, process_usage = util.get_gpu_info(0)
+        current_gpu_memory = float(total) - float(total_used)
+        if current_gpu_memory < parameters.MINIMUM_TRAIN_GPU_MEMORY:
+            return response_util.json_error_response(
+                msg='No enough GPU memory, it requires %s MB, but there is only %s MB' % (
+                str(parameters.MINIMUM_TRAIN_GPU_MEMORY), str(current_gpu_memory)))
+
         base_classifier_id = form.base_classifier_id.data
         session = db_util.renew_session()
         classifier = session.query(Classifier).filter(Classifier.id == base_classifier_id).first()
@@ -129,7 +176,8 @@ def create_iterative_classifier():
         epoch = form.epoch.data
         video_list = form.video_list.data
         video_list = video_list.split(',')
-        controller.create_iterative_training_classifier(current_user, base_classifier_id, form.classifier_name.data, epoch, video_list)
+        controller.create_iterative_training_classifier(current_user, base_classifier_id, form.classifier_name.data,
+                                                        epoch, video_list)
 
         return redirect(request.referrer)
     return response_util.json_error_response(msg=str(form.errors))
@@ -154,6 +202,14 @@ def create_test_classifier():
 
     form = CreateTestClassifierForm(request.form)
     if form.validate():
+        # first, check if GPU is enough
+        total_used, total, process_usage = util.get_gpu_info(0)
+        current_gpu_memory = float(total) - float(total_used)
+        if current_gpu_memory < parameters.MINIMUM_TEST_GPU_MEMORY:
+            return response_util.json_error_response(
+                msg='No enough GPU memory, it requires %s MB, but there is only %s MB' % (
+                str(parameters.MINIMUM_TEST_GPU_MEMORY), str(current_gpu_memory)))
+
         base_classifier_id = form.base_classifier_id.data
         long_running = form.long_running.data
         print 'parameter: base classifier %s , long running: %s ' % (str(base_classifier_id), str(long_running))
@@ -198,4 +254,29 @@ def create_test_classifier():
 
                 util.get_request_result(url, payload, files, ret_file_path)
                 return send_file(ret_file_path)
+    return response_util.json_error_response(msg=str(form.errors))
+
+
+@classifier_page.route("/create_evaluation", methods=["POST"])
+@login_required
+def create_evaluation():
+    form = CreateEvaluationForm(request.form)
+    if form.validate():
+        if not os.path.exists(config.EVALUATION_PATH):
+            os.makedirs(config.EVALUATION_PATH)
+        classifier_id = form.classifier_id.data
+        session = db_util.renew_session()
+        classifier = session.query(Classifier).filter(Classifier.id == classifier_id).first()
+        if not classifier:
+            session.close()
+            return response_util.json_error_response(msg='classifier not exist')
+        session.close()
+        name = form.name.data
+        video_id = form.video_id.data
+        print 'create evaluation with name %s, video id %s ' % (str(name), str(video_id))
+        controller.create_evaluation(classifier_id, name, video_id)
+
+        # controller.create_iterative_training_classifier(current_user, base_classifier_id, form.classifier_name.data, epoch, video_list)
+
+        return redirect(request.referrer)
     return response_util.json_error_response(msg=str(form.errors))

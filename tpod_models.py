@@ -84,6 +84,7 @@ class EvaluationSet(Base):
     # many to many
     videos = relationship(Video, secondary=video_evaluation_association_table, back_populates='evaluation_sets')
 
+    # classifier_id = Column(Integer, ForeignKey("classifiers.id"))
     classifiers = relationship(Classifier, secondary=classifier_evaluation_association_table, back_populates='evaluation_sets')
 
     prediction_result_file_path  = Column(String(550))
