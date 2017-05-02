@@ -1,4 +1,4 @@
-from flask import Flask, request, send_from_directory,render_template, Blueprint
+from flask import Flask, request, send_from_directory, render_template, Blueprint
 from flask import redirect
 from flask.views import View
 import simplejson
@@ -18,14 +18,15 @@ import merge
 from functools import wraps
 import logging
 import sys
+
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 import config
 import pdb
+import db_util
 
 HOME_BASE = os.path.dirname(os.path.abspath(__file__))
 STATIC_BASE = os.path.join(HOME_BASE, 'public')
 STATIC_BASE_LEN = len(STATIC_BASE)
-
 
 vatic_page = Blueprint('vatic_page', __name__, static_folder='public')
 
@@ -36,13 +37,16 @@ ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
 logger.addHandler(ch)
 
+
 def vatic_handler(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         return simplejson.dumps(func(*args, **kwargs))
+
     return wrapper
 
-#@vatic_page.before_request
+
+# @vatic_page.before_request
 # def before_request():
 #     print 'vatic before request'
 #     if request.url.startswith('http://'):
@@ -64,8 +68,8 @@ def getallvideos():
         for segment in video.segments:
             newsegment = {
                 "start": segment.start,
-                "stop":segment.stop,
-                "jobs":[],
+                "stop": segment.stop,
+                "jobs": [],
             }
             for job in segment.jobs:
                 newsegment["jobs"].append({
@@ -86,16 +90,19 @@ def actions(action):
     logger.debug('action input {}'.format(action))
     if action in handlers:
         try:
-            response=handlers[action]()
+            response = handlers[action]()
         finally:
             session.remove()
         return simplejson.dumps(response)
     return "no such action"
 
 
-@vatic_page.route("/server/getjob/<int:id>/<int:verified>", methods=['GET'])    
+@vatic_page.route("/server/getjob/<int:id>/<int:verified>", methods=['GET'])
 def getjob(id, verified):
-    job = session.query(Job).get(id)
+    job = session.query(Job).filter(Job.id == id).first()
+    if job is None:
+        print 'Job with id %s not found' % str(id)
+        return 'Job with id %s not found' % str(id)
 
     logger.debug("Found job {0}".format(job.id))
 
@@ -114,6 +121,7 @@ def getjob(id, verified):
     attributes = {}
     for label in video.labels:
         attributes[label.id] = dict((a.id, a.text) for a in label.attributes)
+    print 'got labels %s, there are %s labels for video ' % (str(attributes), str(video.labels))
 
     logger.debug("Giving user frames {0} to {1} of {2}".format(video.slug,
                                                                segment.start,
@@ -125,28 +133,28 @@ def getjob(id, verified):
         homography = homography.tolist()
 
     # j: do not return any bidirectional tracker
-    trackers=tracking.api.gettrackers()    
-    trackers['bidirectional']={}
+    trackers = tracking.api.gettrackers()
+    trackers['bidirectional'] = {}
     logger.debug("available trackers: {}".format(trackers))
-    
-    msg= {
-        "start":        segment.start,
-        "stop":         segment.stop,
-        "slug":         video.slug,
-        "width":        video.width,
-        "height":       video.height,
-        "skip":         video.skip,
-        "perobject":    video.perobjectbonus,
-        "completion":   video.completionbonus,
-        "blowradius":   video.blowradius,
-        "jobid":        job.id,
-        "training":     int(training),
-        "labels":       labels,
-        "attributes":   attributes,
-        "homography":   homography,
-        "trackers":     trackers,
-        "nextid":       video.nextid(),
-        "pointmode":    int(video.pointmode),
+
+    msg = {
+        "start": segment.start,
+        "stop": segment.stop,
+        "slug": video.slug,
+        "width": video.width,
+        "height": video.height,
+        "skip": video.skip,
+        "perobject": video.perobjectbonus,
+        "completion": video.completionbonus,
+        "blowradius": video.blowradius,
+        "jobid": job.id,
+        "training": int(training),
+        "labels": labels,
+        "attributes": attributes,
+        "homography": homography,
+        "trackers": trackers,
+        "nextid": video.nextid(),
+        "pointmode": int(video.pointmode),
     }
     return simplejson.dumps(msg)
 
@@ -165,33 +173,39 @@ def getboxesforjob(id):
     #             box.xtl=0
     # session.add(job)
     # session.commit()
-    
+
     for path in job.paths:
+        if path.label is None:
+            # there are some paths with no label related, this would result in strange boxes at frontend
+            continue
         attrs = [(x.attributeid, x.frame, x.value) for x in path.attributes]
         result.append({"label": path.labelid,
                        "userid": path.userid,
                        "done": path.done,
                        "boxes": [tuple(x) for x in path.getboxes()],
                        "attributes": attrs})
+        print 'get path id %s, userid %s attributes %s, label name %s ' % (
+        str(path.id), str(path.userid), str(attrs), str(path.label))
     return result
 
+
 def readpath(label, userid, done, track, attributes):
-#    logger.debug('{} {} {} {}'.format(label,userid,done,attributes))
+    #    logger.debug('{} {} {} {}'.format(label,userid,done,attributes))
     path = Path()
-    
+
     path.label = session.query(Label).get(label)
     path.done = int(done)
     path.userid = int(userid)
 
-#    logger.debug("Received {0} track".format(path.label.text))
+    #    logger.debug("Received {0} track".format(path.label.text))
 
     visible = False
     for frame, userbox in track.items():
-        box = Box(path = path)
-        #box.xtl = max(int(userbox[0]), 0)
-        #box.ytl = max(int(userbox[1]), 0)
-        #box.xbr = max(int(userbox[2]), 0)
-        #box.ybr = max(int(userbox[3]), 0)
+        box = Box(path=path)
+        # box.xtl = max(int(userbox[0]), 0)
+        # box.ytl = max(int(userbox[1]), 0)
+        # box.xbr = max(int(userbox[2]), 0)
+        # box.ybr = max(int(userbox[3]), 0)
         box.xtl = int(userbox[0])
         box.ytl = int(userbox[1])
         box.xbr = int(userbox[2])
@@ -204,7 +218,7 @@ def readpath(label, userid, done, track, attributes):
         if not box.outside:
             visible = True
 
-#        logger.debug("Received box {0}".format(str(box.getbox())))
+            #        logger.debug("Received box {0}".format(str(box.getbox())))
 
     if not visible:
         logger.warning("Received empty path! Skipping")
@@ -220,25 +234,26 @@ def readpath(label, userid, done, track, attributes):
             path.attributes.append(aa)
     return path
 
+
 def readpaths(tracks):
-#    logger.debug("Reading {0} total tracks".format(len(tracks)))
+    #    logger.debug("Reading {0} total tracks".format(len(tracks)))
     # j: 
-#    for track in tracks:
-#        logger.debug("track content: {}".format(track))
+    #    for track in tracks:
+    #        logger.debug("track content: {}".format(track))
     for label, userid, done, track, attributes in tracks:
         logger.debug("label {}".format(label))
         logger.debug("userid {}".format(userid))
         logger.debug("done {}".format(done))
         logger.debug("track length {}".format(len(track)))
-        logger.debug("attributes {}".format(attributes))            
-    paths=[readpath(label, userid, done, track, attributes) for label, userid, done, track, attributes in tracks]
+        logger.debug("attributes {}".format(attributes))
+    paths = [readpath(label, userid, done, track, attributes) for label, userid, done, track, attributes in tracks]
     return paths
 
 
 @vatic_page.route("/server/savejob/<int:id>", methods=['POST'])
 @vatic_handler
 def savejob(id):
-    tracks=request.get_json(force=True)
+    tracks = request.get_json(force=True)
     job = session.query(Job).get(id)
 
     logger.debug("job: {} ".format(job))
@@ -259,7 +274,7 @@ def savejob(id):
     session.commit()
 
     # #j:disable merging with neighboring segments
-    
+
     # # Update neigboring segments
     # video = job.segment.video
     # prevseg, nextseg = video.getsegmentneighbors(job.segment)
@@ -317,16 +332,18 @@ def savejob(id):
     # session.commit()
     return 'success'
 
-@vatic_page.route("/server/validatejob/<int:id>", methods=['POST'])        
+
+@vatic_page.route("/server/validatejob/<int:id>", methods=['POST'])
 @vatic_handler
 def validatejob(id):
-    tracks=request.data
+    tracks = request.data
     job = session.query(Job).get(id)
     paths = readpaths(tracks)
 
     return job.trainingjob.validator(paths, job.trainingjob.paths)
 
-@vatic_page.route("/server/respawnjob/<int:id>", methods=['GET'])        
+
+@vatic_page.route("/server/respawnjob/<int:id>", methods=['GET'])
 @vatic_handler
 def respawnjob(id):
     job = session.query(Job).get(id)
@@ -340,21 +357,23 @@ def respawnjob(id):
     replacement.publish()
     session.add(replacement)
     session.commit()
-    
-@vatic_page.route("/server/trackforward/<int:id>/<int:start>/<string:end>/<string:tracker>/<int:trackid>", methods=['POST'])    
-@vatic_handler    
+
+
+@vatic_page.route("/server/trackforward/<int:id>/<int:start>/<string:end>/<string:tracker>/<int:trackid>",
+                  methods=['POST'])
+@vatic_handler
 def trackforward(id, start, end, tracker, trackid):
     start = int(start)
     trackid = int(trackid)
     job = session.query(Job).get(id)
     segment = job.segment
     video = segment.video
-    
+
     try:
         end = int(end)
     except ValueError:
         end = segment.stop
-        
+
     tracks = request.get_json(force=True)
     paths = [path for path in readpaths(tracks) if path is not None]
     paths = trackutils.totrackpaths(paths)
@@ -372,23 +391,23 @@ def trackforward(id, start, end, tracker, trackid):
     path = trackutils.fromtrackpath(outpath, job, start, end)
     attrs = [(x.attributeid, x.frame, x.value) for x in path.attributes]
 
-#    logger.info("path: {0}".format(path.getboxes()))    
-#    logger.info("tracked boxes: {}".format([tuple(x) for x in path.getboxes()]))
-    
+    #    logger.info("path: {0}".format(path.getboxes()))
+    #    logger.info("tracked boxes: {}".format([tuple(x) for x in path.getboxes()]))
+
     return {
         "label": 0,
         "boxes": [tuple(x) for x in path.getboxes()],
         "attributes": attrs
     }
-    
+
+
 @vatic_page.route('/<path:path>', methods=['GET'])
 def public_files(path):
     if '.' in path:
         public_dir = 'public'
         # public_dir=os.path.join(config.VATIC_URL_PREFIX.replace('/',''),'public')
-        return send_from_directory(public_dir,path)
+        return send_from_directory(public_dir, path)
     return "not a static file"
 
 
 handlers["getallvideos"] = getallvideos
-
