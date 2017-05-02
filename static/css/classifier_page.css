@@ -82,3 +82,16 @@ h5 {
     font-size: 12px;
 }
 
+.img_evaluation{
+    width: 200px;
+    cursor: pointer;
+}
+
+.list_evaluation{
+    list-style: none;
+    padding-left: 0;
+}
+
+.item_evaluation_video{
+    padding-left: 10px;
+}

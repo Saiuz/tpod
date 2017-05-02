@@ -17,6 +17,13 @@ logger = m_logger.get_logger('LABEL_PAGE')
 def delete_label():
     form = DeleteLabelForm(request.form)
     if form.validate():
+        session = db_util.renew_session()
+        label = session.query(Label).filter(Label.id == form.label_id.data).first()
+        video = session.query(Video).filter(Video.id == label.videoid).first()
+        video.labels.remove(label)
+        session.delete(label)
+        session.commit()
+        session.close()
         return redirect(request.referrer)
     return response_util.json_error_response(msg=str(form.errors))
 
@@ -37,6 +44,8 @@ def add_label():
     if form.validate():
         session = db_util.renew_session()
         label = Label(text = form.label_name.data, videoid = form.video_id.data)
+        video = session.query(Video).filter(Video.id == form.video_id.data).first()
+        video.labels.append(label)
         session.add(label)
         session.commit()
         session.close()

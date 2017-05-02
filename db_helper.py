@@ -1,6 +1,14 @@
 import db_util
 from vatic.models import *
 from tpod_models import *
+import config
+import os, fnmatch
+import re
+import cPickle
+import matplotlib
+# Force matplotlib to not use any Xwindows backend.
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 
 
 def generate_label_obj(label):
@@ -161,12 +169,44 @@ def get_videos_labels_of_classifier(classifier):
 
 
 def get_evaluations_of_classifier(classifier):
+    matplotlib.use('Agg')
     ret = []
     for evaluation in classifier.evaluation_sets:
         eval_obj = {
             'name': evaluation.name,
             'id': evaluation.id,
+            'images': [],
+            'videos': [],
         }
+        for video in evaluation.videos:
+            eval_obj['videos'].append(str(video.slug))
+        # read evaluation result if necessary
+        evaluation_result_path = config.EVALUATION_PATH + str(evaluation.id)
+        if os.path.exists(evaluation_result_path):
+            candidate_result = fnmatch.filter(os.listdir(evaluation_result_path), '*.pkl')
+            for candidate in candidate_result:
+                object_name = os.path.splitext(os.path.basename(candidate))[0]
+                object_result = cPickle.load(open(evaluation_result_path + '/' + str(candidate), 'r'))
+                rec = object_result['rec']
+                prec = object_result['prec']
+                ap = object_result['ap']
+                print 'read evaluation result, prec %s, ap %s  ' % (str(prec.shape), str(ap))
+                fig = plt.figure()
+                plt.title('Precision, AP: %s ' % str(ap))
+                plt.ylabel('Precision')
+                plt.xlabel('Recall')
+                ax = fig.add_subplot(111)
+                ax.plot(rec, prec)
+                img_path = config.IMG_PATH + str(evaluation.id) + '/'
+                if not os.path.exists(img_path):
+                    os.makedirs(img_path)
+                img_path += str(object_name) + '.png'
+                plt.savefig(img_path)
+                img_obj = {
+                    'name':object_name,
+                    'path': img_path
+                }
+                eval_obj['images'].append(img_obj)
         ret.append(eval_obj)
     return ret
 

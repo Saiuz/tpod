@@ -356,10 +356,12 @@ def evaluation_task(self, classifier_id, docker_image_id, evaluation_set_name, e
 
     image_name = docker_image_id
 
+    docker_data_volume = '/home/suanmiao/workspace/tpod/dataset/:/dataset'
+    docker_data_volume_eval = '/home/suanmiao/workspace/tpod/eval/:/eval'
     example_cmd = 'python tools/tpod_eval_net.py --gpu 0 --output_dir . --eval_set_name %s --eval_result_name %s ' % \
                   (str(evaluation_set_name), str(evaluation_result_name))
     print 'execute: %s ' % str(example_cmd)
-    proc = subprocess.Popen(['nvidia-docker', 'run', '--name',
+    proc = subprocess.Popen(['nvidia-docker', 'run', '-v', docker_data_volume, '-v', docker_data_volume_eval, '--name',
                              docker_name, image_name,
                              'python', 'tools/tpod_eval_net.py', '--gpu', '0', '--output_dir', '.', '--eval_set_name',
                              str(evaluation_set_name), '--eval_result_name', str(evaluation_result_name)])

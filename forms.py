@@ -9,10 +9,25 @@ import wtforms.validators
 from vatic.models import *
 
 
+class PushClassifierForm(FlaskForm):
+    classifier_id = StringField('classifier_id', validators=[DataRequired()])
+
+    def __init__(self, *args, **kwargs):
+        kwargs['csrf_enabled'] = False
+        FlaskForm.__init__(self, *args, **kwargs)
+
+    def validate(self):
+        rv = FlaskForm.validate(self)
+        if not rv:
+            return False
+        return True
+
+
 class CreateEvaluationForm(FlaskForm):
     classifier_id = StringField('classifier_id', validators=[DataRequired()])
     name = StringField('name', validators=[DataRequired()])
-    video_id = StringField('video_id', validators=[DataRequired()])
+    video_list = StringField('video_list', validators=[DataRequired()])
+    label_list = StringField('label_list', validators=[DataRequired()])
 
     def __init__(self, *args, **kwargs):
         kwargs['csrf_enabled'] = False
@@ -157,7 +172,6 @@ class DeleteLabelForm(FlaskForm):
             self.label_id.errors.append('label not exist')
             session.close()
             return False
-        session.delete(label)
         session.close()
         return True
 

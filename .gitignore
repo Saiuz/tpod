@@ -3,6 +3,7 @@ upload/*
 .idea
 extract/*
 public/frames/*
+public/img/*
 homographies/*
 image_list
 label_list

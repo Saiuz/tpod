@@ -44,6 +44,12 @@
                     </li>
                     {% endfor%}
                 </ul>
+                <form class="item_push_classifier" action="push" method="POST">
+                    <input hidden name="classifier_id" value="{{classifier.id}}">
+                    <button class="btn" type="submit">Export Classifier Image</button>
+                </form>
+
+                <br/>
                 <br/>
                 <form class="item_delete_classifier" action="delete" method="POST">
                     <input hidden name="classifier_id" value="{{classifier.id}}">
@@ -136,33 +142,25 @@
             </th>
             <th>
                 {% if classifier.task_type == 'train' %}
-                <form class="item_evaluate_classifier" id="evaluation-{{classifier.id}}" action="create_evaluation"
-                      method="POST">
-                    <p>Evaluate the classifier against some datasets, now support ROC curve</p>
-                    <input hidden name="classifier_id" value="{{classifier.id}}">
-
-                    <div class="form-group form-inline">
-                        <div class="form-group form-inline">
-                            <label>Name:</label>
-                            <input name="name" class="form-control" value="">
-                        </div>
-
-                        <label for="param_videos">Choose Labeled Videos:</label>
-
-                        <select class="evaluation_video-select" name="character">
-                        </select>
-                        <input class="evaluation_param_videos" type="text" name="video_id" hidden>
-                    </div>
-
-                    <button class="btn" type="submit">Begin Evaluation</button>
-                </form>
-
-                </br>
                 <h5>Evaluation Set</h5>
                 <ul class="list_evaluation">
                     {% for evaluation in classifier.evaluation_sets %}
                     <li class="item_evaluation">
-                        <p class="item_evaluation_name">{{evaluation.name}}</p>
+                        <p class="item_evaluation_name">Name: {{evaluation.name}}</p>
+
+                        <p>Videos</p>
+                        {% for video in evaluation.videos %}
+                        <p class="item_evaluation_video">{{video}}</p>
+                        {% endfor%}
+                        <p>Graph</p>
+                        <ul class="list_evaluation_img">
+                            {% for img in evaluation.images %}
+                            <li class="item_evaluation_img">
+                                <p>{{img.name}}</p>
+                                <img class="img_evaluation" src="evaluation_img?path={{img.path}}"/>
+                            </li>
+                            {% endfor%}
+                        </ul>
                         <form class="item_delete_evaluation" action="delete_evaluation" method="POST">
                             <input hidden name="evaluation_id" value="{{evaluation.id}}">
                             <button class="btn btn-danger" type="submit">Delete Evaluation</button>
@@ -172,8 +170,36 @@
                     {% endfor%}
                 </ul>
                 <br/>
-                {% endif %}
 
+                <form class="item_evaluate_classifier" id="evaluation-{{classifier.id}}" action="create_evaluation"
+                      method="POST">
+                    <p>Evaluate the classifier against some datasets, now support ROC curve</p>
+                    <input hidden name="classifier_id" value="{{classifier.id}}">
+                    <div class="form-group form-inline">
+                        <label>Name:</label>
+                        <input name="name" class="form-control" value="">
+                    </div>
+
+                    <div class="form-group form-inline">
+
+                        <label for="param_videos">Choose Labeled Videos:</label>
+
+                        <select class="evaluation_video-select" name="character" multiple="multiple">
+                        </select>
+                        <input class="evaluation_param_videos" type="text" name="video_list" hidden>
+                    </div>
+                    <div class="form-group form-inline">
+                        <label for="param_labels">Choose Labels:</label>
+
+                        <select class="evaluation_label-select" name="character" multiple="multiple">
+                        </select>
+                        <input type="text" class="evaluation_param_labels" name="label_list" hidden>
+                    </div>
+
+                    <button class="btn" type="submit">Begin Evaluation</button>
+                </form>
+
+                {% endif %}
             </th>
         </tr>
         </tbody>
@@ -252,6 +278,13 @@
             }
         });
 
+        $('.evaluation_label-select').searchableOptionList({
+            data: 'available_labels',
+            texts: {
+                searchplaceholder: 'Choose labels for the classifier'
+            }
+        });
+
         $('#label-select').searchableOptionList({
             data: 'available_labels',
             texts: {
@@ -324,14 +357,30 @@
     $(".item_evaluate_classifier").submit(function (e) {
 
         var video_select = $($(this).find('.evaluation_video-select')[0]);
+        var label_select = $($(this).find('.evaluation_label-select')[0]);
         var selected_videos = video_select.searchableOptionList().getSelection();
+        var selected_labels = label_select.searchableOptionList().getSelection();
 
-        var video_id = "";
+        var videos = "";
         for (var i = 0; i < selected_videos.length; i++) {
-            video_id += (selected_videos[i].value);
+            if (i == selected_videos.length - 1) {
+                videos += (selected_videos[i].value);
+            } else {
+                videos += (selected_videos[i].value + ",");
+            }
         }
 
-        $($(this).find('.evaluation_param_videos')[0]).val(video_id);
+        var labels = "";
+        for (var i = 0; i < selected_labels.length; i++) {
+            if (i == selected_labels.length - 1) {
+                labels += (selected_labels[i].value);
+            } else {
+                labels += (selected_labels[i].value + ",");
+            }
+        }
+
+        $($(this).find('.evaluation_param_videos')[0]).val(videos);
+        $($(this).find('.evaluation_param_labels')[0]).val(labels);
 
         console.log(videos);
     });
@@ -346,6 +395,24 @@
             }
         });
     });
+
+    $(".img_evaluation").click(function (e) {
+        var $textAndPic = $('<div></div>');
+        var src = $(this).attr('src');
+        $textAndPic.append("<img style='max-width: 100%;' src=" + src + " />");
+
+        BootstrapDialog.show({
+            title: 'The ROC Curve',
+            message: $textAndPic,
+            buttons: [{
+                label: 'Dismiss',
+                action: function (dialogRef) {
+                    dialogRef.close();
+                }
+            }]
+        });
+    })
+
     var trim = function (input, length) {
         if (input.length > length) {
             return input.substring(0, length)

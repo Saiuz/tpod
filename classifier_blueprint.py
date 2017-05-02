@@ -257,11 +257,26 @@ def create_test_classifier():
     return response_util.json_error_response(msg=str(form.errors))
 
 
+@classifier_page.route("/evaluation_img", methods=["POST", "GET"])
+@login_required
+def evaluation_img():
+    file_path = request.args.get('path')
+    return send_file(file_path)
+
+
 @classifier_page.route("/create_evaluation", methods=["POST"])
 @login_required
 def create_evaluation():
     form = CreateEvaluationForm(request.form)
     if form.validate():
+        # first, check if GPU is enough
+        total_used, total, process_usage = util.get_gpu_info(0)
+        current_gpu_memory = float(total) - float(total_used)
+        if current_gpu_memory < parameters.MINIMUM_EVAL_GPU_MEMORY:
+            return response_util.json_error_response(
+                msg='No enough GPU memory, it requires %s MB, but there is only %s MB' % (
+                str(parameters.MINIMUM_EVAL_GPU_MEMORY), str(current_gpu_memory)))
+
         if not os.path.exists(config.EVALUATION_PATH):
             os.makedirs(config.EVALUATION_PATH)
         classifier_id = form.classifier_id.data
@@ -272,11 +287,33 @@ def create_evaluation():
             return response_util.json_error_response(msg='classifier not exist')
         session.close()
         name = form.name.data
-        video_id = form.video_id.data
-        print 'create evaluation with name %s, video id %s ' % (str(name), str(video_id))
-        controller.create_evaluation(classifier_id, name, video_id)
-
-        # controller.create_iterative_training_classifier(current_user, base_classifier_id, form.classifier_name.data, epoch, video_list)
+        video_list = form.video_list.data
+        label_list = form.label_list.data
+        video_list = video_list.split(',')
+        label_list = label_list.split(',')
+        print 'create evaluation with name %s, video list %s ' % (str(name), str(video_list))
+        controller.create_evaluation(classifier_id, name, video_list, label_list)
 
         return redirect(request.referrer)
     return response_util.json_error_response(msg=str(form.errors))
+
+
+@classifier_page.route("/push", methods=["POST"])
+@login_required
+def push_classifier():
+    form = PushClassifierForm(request.form)
+    if form.validate():
+        classifier_id = form.classifier_id.data
+        session = db_util.renew_session()
+        classifier = session.query(Classifier).filter(Classifier.id == classifier_id).first()
+        if not classifier:
+            session.close()
+            return response_util.json_error_response(msg='classifier not exist')
+        session.close()
+        push_tag_name = 'tpod-image-' + classifier.name + '-' + str(random.getrandbits(32))
+        controller.push_classifier(classifier_id, push_tag_name)
+
+        return 'The image has been pushed, the name for that image is %s ' % str(push_tag_name)
+    return response_util.json_error_response(msg=str(form.errors))
+
+

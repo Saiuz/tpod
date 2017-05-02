@@ -81,10 +81,10 @@ def extract(path_video, path_output):
         if not os.path.isdir(os.path.dirname(img_path)):
             os.makedirs(os.path.dirname(img_path))
         # resize the image to 720 x 480
-        hw_ratio = float(image.shape[0])/float(image.shape[1])
+        hw_ratio = float(image.shape[0]) / float(image.shape[1])
         if hw_ratio > 480.0 / 720.0:
             target_height = 480
-            target_width = target_height/hw_ratio
+            target_width = target_height / hw_ratio
         else:
             target_width = 720
             target_height = target_width * hw_ratio
@@ -108,10 +108,10 @@ def extract_image_sequences(image_path_list, path_output):
         if not os.path.isdir(os.path.dirname(img_path)):
             os.makedirs(os.path.dirname(img_path))
         # resize the image to 720 x 480
-        hw_ratio = float(image.shape[0])/float(image.shape[1])
+        hw_ratio = float(image.shape[0]) / float(image.shape[1])
         if hw_ratio > 480.0 / 720.0:
             target_height = 480
-            target_width = target_height/hw_ratio
+            target_width = target_height / hw_ratio
         else:
             target_width = 720
             target_height = target_width * hw_ratio
@@ -121,7 +121,7 @@ def extract_image_sequences(image_path_list, path_output):
     return True
 
 
-def load(video_name, video_path_output, labels, orig_file_path, user_id, segment_length = 3000):
+def load(video_name, video_path_output, labels, orig_file_path, user_id, segment_length=3000):
     # video_name = slug
     # video_path_output = location
     first_frame_path = Video.getframepath(0, video_path_output)
@@ -131,14 +131,14 @@ def load(video_name, video_path_output, labels, orig_file_path, user_id, segment
     width = first_frame.shape[1]
     height = first_frame.shape[0]
 
-     # search for last frame
+    # search for last frame
     toplevel = max(int(x)
-        for x in os.listdir(video_path_output))
+                   for x in os.listdir(video_path_output))
     secondlevel = max(int(x)
-        for x in os.listdir("{0}/{1}".format(video_path_output, toplevel)))
+                      for x in os.listdir("{0}/{1}".format(video_path_output, toplevel)))
     maxframes = max(int(os.path.splitext(x)[0])
-        for x in os.listdir("{0}/{1}/{2}"
-        .format(video_path_output, toplevel, secondlevel))) + 1
+                    for x in os.listdir("{0}/{1}/{2}"
+                                        .format(video_path_output, toplevel, secondlevel))) + 1
 
     print "Found {0} frames.".format(maxframes)
     last_frame_path = Video.getframepath(maxframes - 1, video_path_output)
@@ -151,7 +151,7 @@ def load(video_name, video_path_output, labels, orig_file_path, user_id, segment
         print "Video {0} already exists!".format(video_name)
         print "updating labels for {0}".format(video_name)
         # j: add in update label function
-        video=session.query(Video).filter(Video.slug == video_name).first()
+        video = session.query(Video).filter(Video.slug == video_name).first()
         # check if such label has any paths associated with it
         for label in video.labels:
             if not session.query(Path).filter(Path.labelid == label.id).count():
@@ -170,7 +170,7 @@ def load(video_name, video_path_output, labels, orig_file_path, user_id, segment
                     session.close()
                     return
                 labeltext = labeltext[1:]
-                attribute = Attribute(text = labeltext)
+                attribute = Attribute(text=labeltext)
                 session.add(attribute)
                 lastlabel.attributes.append(attribute)
                 attributecache[labeltext] = attribute
@@ -178,7 +178,7 @@ def load(video_name, video_path_output, labels, orig_file_path, user_id, segment
                 if labeltext in existing_labels:
                     print 'label: {} already in video'.format(label)
                     continue
-                label = Label(text = labeltext)
+                label = Label(text=labeltext)
                 print 'add label: {}'.format(label)
                 session.add(label)
                 video.labels.append(label)
@@ -195,21 +195,21 @@ def load(video_name, video_path_output, labels, orig_file_path, user_id, segment
     current_user = session.query(User).filter(User.id == user_id).first()
 
     # create video
-    video = Video(slug = video_name,
-                  location = os.path.realpath(video_path_output),
-                  width = width,
-                  height = height,
-                  totalframes = maxframes,
-                  skip = 0,
-                  perobjectbonus = 0,
-                  completionbonus = 0,
-                  trainwith = None,
-                  isfortraining = False,
-                  blowradius = 0,
-                  homographylocation = homographydir,
-                  pointmode = False,
-                  orig_file_path = orig_file_path,
-                  extract_path = video_path_output,
+    video = Video(slug=video_name,
+                  location=os.path.realpath(video_path_output),
+                  width=width,
+                  height=height,
+                  totalframes=maxframes,
+                  skip=0,
+                  perobjectbonus=0,
+                  completionbonus=0,
+                  trainwith=None,
+                  isfortraining=False,
+                  blowradius=0,
+                  homographylocation=homographydir,
+                  pointmode=False,
+                  orig_file_path=orig_file_path,
+                  extract_path=video_path_output,
                   owner_id=user_id)
     session.add(video)
     current_user.videos.append(video)
@@ -227,12 +227,12 @@ def load(video_name, video_path_output, labels, orig_file_path, user_id, segment
                 session.close()
                 return
             labeltext = labeltext[1:]
-            attribute = Attribute(text = labeltext)
+            attribute = Attribute(text=labeltext)
             session.add(attribute)
             lastlabel.attributes.append(attribute)
             attributecache[labeltext] = attribute
         else:
-            label = Label(text = labeltext)
+            label = Label(text=labeltext)
             print 'add label: {}'.format(label)
             session.add(label)
             video.labels.append(label)
@@ -253,14 +253,14 @@ def load(video_name, video_path_output, labels, orig_file_path, user_id, segment
     print "Creating segments..."
     # create shots and jobs
     startframe = 0
-    stopframe =  video.totalframes - 1
+    stopframe = video.totalframes - 1
     for start in range(startframe, stopframe, segment_length):
         stop = min(start + segment_length + 1,
                    stopframe)
-        segment = Segment(start = start,
-                            stop = stop,
-                            video = video)
-        job = Job(segment = segment)
+        segment = Segment(start=start,
+                          stop=stop,
+                          video=video)
+        job = Job(segment=segment)
         session.add(segment)
         session.add(job)
     session.commit()
@@ -279,6 +279,7 @@ def image_exist(img_path):
 def publish():
     return None
 
+
 # ---------- below is code about dump, these two classes are selected from turkic
 
 
@@ -286,7 +287,7 @@ class Tracklet(object):
     def __init__(self, label, labelid, userid, paths, boxes, velocities):
         self.label = label
         self.paths = paths
-        self.boxes = sorted(boxes, key = lambda x: x.frame)
+        self.boxes = sorted(boxes, key=lambda x: x.frame)
         self.velocities = velocities
         self.labelid = labelid
         self.userid = userid
@@ -297,14 +298,13 @@ class Tracklet(object):
 
 
 def get_merged_data(video, domerge=True, mergemethod=None, mergethreshold=0.5, groundplane=False):
-
     response = []
     if domerge:
         for boxes, paths in merge.merge(video.segments,
                                         method=mergemethod,
-                                        threshold = mergethreshold,
-                                        groundplane = groundplane):
-            if (paths[0].label !=None):
+                                        threshold=mergethreshold,
+                                        groundplane=groundplane):
+            if (paths[0].label != None):
                 tracklet = Tracklet(
                     paths[0].label.text,
                     paths[0].labelid,
@@ -344,7 +344,7 @@ def get_merged_data(video, domerge=True, mergemethod=None, mergethreshold=0.5, g
 
         velocities = velocity.velocityforboxes(path)
         tracklet = Tracklet(track.label, track.labelid, track.userid,
-                                        track.paths, path, velocities)
+                            track.paths, path, velocities)
         interpolated.append(tracklet)
     response = interpolated
 
@@ -410,6 +410,7 @@ def dump_image_and_label_files(video_ids, label_name_array):
         # the key is the label name, the value is an array, since there might be multiple boxes for one label
         label_dict = {}
         for track in data:
+            print 'get track with name %s, and length %s ' % (str(track.label), str(len(track.boxes)))
             if str(track.label) in label_name_array:
                 if str(track.label) not in label_dict:
                     label_dict[str(track.label)] = []
@@ -429,22 +430,23 @@ def dump_image_and_label_files(video_ids, label_name_array):
                 image_list_array.append(img_path)
                 # traverse through the iterators, to check each label
                 current_frame_labels = []
-                for iterator in iterators:
-                    if len(iterator) == 0:
-                        current_frame_labels.append([])
-                    else:
-                        label_boxes = []
-                        for box_total in iterator:
-                            if frame >= len(box_total):
-                                break
-                            box = box_total[frame]
-                            x1 = box.xtl
-                            y1 = box.ytl
-                            w = (box.xbr - box.xtl)
-                            h = (box.ybr - box.ytl)
-                            item = [str(x1), str(y1), str(w), str(h)]
-                            label_boxes.append(item)
-                        current_frame_labels.append(label_boxes)
+                # each iterator represent the pointer for the array of the class
+                for i, iterator in enumerate(iterators):
+                    label_boxes = []
+                    for j, box_total in enumerate(iterator):
+                        if frame >= len(box_total):
+                            continue
+                        box = box_total[frame]
+                        # ignore these lost, occluded, generated labels
+                        if box.lost or box.occluded:
+                            continue
+                        x1 = box.xtl
+                        y1 = box.ytl
+                        w = (box.xbr - box.xtl)
+                        h = (box.ybr - box.ytl)
+                        item = [str(x1), str(y1), str(w), str(h)]
+                        label_boxes.append(item)
+                    current_frame_labels.append(label_boxes)
                 # generate the format for that frame of labels
                 label_list_array.append(generate_frame_label(current_frame_labels))
 
@@ -459,4 +461,3 @@ def dump_image_and_label_files(video_ids, label_name_array):
 
     session.close()
     return image_file_path, label_file_path, label_name_path
-
