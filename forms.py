@@ -27,7 +27,6 @@ class CreateEvaluationForm(FlaskForm):
     classifier_id = StringField('classifier_id', validators=[DataRequired()])
     name = StringField('name', validators=[DataRequired()])
     video_list = StringField('video_list', validators=[DataRequired()])
-    label_list = StringField('label_list', validators=[DataRequired()])
 
     def __init__(self, *args, **kwargs):
         kwargs['csrf_enabled'] = False

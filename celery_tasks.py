@@ -398,3 +398,23 @@ def evaluation_task(self, classifier_id, docker_image_id, evaluation_set_name, e
 
     proc.terminate()
     self.update_status(STATE_FINISH)
+
+
+@app.task(trail=True)
+def push_image_task(image_name, push_tag_name):
+    client = docker.from_env()
+    print 'begin pushing image'
+    print 'image name %s ' % str(image_name)
+    try:
+        image = client.images.get(str(image_name))
+        tag_name = 'registry.cmusatyalab.org/junjuew/container-registry:%s' % str(push_tag_name)
+        print 'tag name %s ' % str(push_tag_name)
+        image.tag(tag_name)
+        ret = client.images.push(tag_name)
+        print 'end pushing image'
+        print ret
+        return ret
+    except Exception as e:
+        print e
+    return False
+

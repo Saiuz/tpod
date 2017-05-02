@@ -135,7 +135,7 @@ def create_training_classifier():
         if current_gpu_memory < parameters.MINIMUM_TRAIN_GPU_MEMORY:
             return response_util.json_error_response(
                 msg='No enough GPU memory, it requires %s MB, but there is only %s MB' % (
-                str(parameters.MINIMUM_TRAIN_GPU_MEMORY), str(current_gpu_memory)))
+                    str(parameters.MINIMUM_TRAIN_GPU_MEMORY), str(current_gpu_memory)))
 
         classifier_name = form.classifier_name.data
         epoch = form.epoch.data
@@ -164,8 +164,12 @@ def create_iterative_classifier():
         if current_gpu_memory < parameters.MINIMUM_TRAIN_GPU_MEMORY:
             return response_util.json_error_response(
                 msg='No enough GPU memory, it requires %s MB, but there is only %s MB' % (
-                str(parameters.MINIMUM_TRAIN_GPU_MEMORY), str(current_gpu_memory)))
+                    str(parameters.MINIMUM_TRAIN_GPU_MEMORY), str(current_gpu_memory)))
 
+        # one thing should care about is that for both iterative training and evaluation,
+        # the base labels.txt (which stores the name and order for labels) should still be the
+        # very original (that from the base classifier), thus the labels list should also be organized in
+        # that order
         base_classifier_id = form.base_classifier_id.data
         session = db_util.renew_session()
         classifier = session.query(Classifier).filter(Classifier.id == base_classifier_id).first()
@@ -208,7 +212,7 @@ def create_test_classifier():
         if current_gpu_memory < parameters.MINIMUM_TEST_GPU_MEMORY:
             return response_util.json_error_response(
                 msg='No enough GPU memory, it requires %s MB, but there is only %s MB' % (
-                str(parameters.MINIMUM_TEST_GPU_MEMORY), str(current_gpu_memory)))
+                    str(parameters.MINIMUM_TEST_GPU_MEMORY), str(current_gpu_memory)))
 
         base_classifier_id = form.base_classifier_id.data
         long_running = form.long_running.data
@@ -275,7 +279,7 @@ def create_evaluation():
         if current_gpu_memory < parameters.MINIMUM_EVAL_GPU_MEMORY:
             return response_util.json_error_response(
                 msg='No enough GPU memory, it requires %s MB, but there is only %s MB' % (
-                str(parameters.MINIMUM_EVAL_GPU_MEMORY), str(current_gpu_memory)))
+                    str(parameters.MINIMUM_EVAL_GPU_MEMORY), str(current_gpu_memory)))
 
         if not os.path.exists(config.EVALUATION_PATH):
             os.makedirs(config.EVALUATION_PATH)
@@ -288,11 +292,9 @@ def create_evaluation():
         session.close()
         name = form.name.data
         video_list = form.video_list.data
-        label_list = form.label_list.data
         video_list = video_list.split(',')
-        label_list = label_list.split(',')
         print 'create evaluation with name %s, video list %s ' % (str(name), str(video_list))
-        controller.create_evaluation(classifier_id, name, video_list, label_list)
+        controller.create_evaluation(classifier_id, name, video_list)
 
         return redirect(request.referrer)
     return response_util.json_error_response(msg=str(form.errors))
@@ -311,9 +313,6 @@ def push_classifier():
             return response_util.json_error_response(msg='classifier not exist')
         session.close()
         push_tag_name = 'tpod-image-' + classifier.name + '-' + str(random.getrandbits(32))
-        controller.push_classifier(classifier_id, push_tag_name)
+        return controller.push_classifier(classifier_id, push_tag_name)
 
-        return 'The image has been pushed, the name for that image is %s ' % str(push_tag_name)
     return response_util.json_error_response(msg=str(form.errors))
-
-

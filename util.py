@@ -130,3 +130,7 @@ def get_request_result(url, payload, files, file_name):
     f.close()
     print 'write file finished'
 
+
+
+
+

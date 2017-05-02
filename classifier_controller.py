@@ -7,7 +7,7 @@ import db_util
 import util
 from tpod_models import Classifier, EvaluationSet
 from vatic.models import Video, Label, Box, Path
-from celery_tasks import train_task, test_task, evaluation_task
+from celery_tasks import train_task, test_task, evaluation_task, push_image_task
 import random
 from celery_model import TaskStatusRecord
 from sqlalchemy import desc
@@ -52,7 +52,6 @@ def delete_classifier(classifier_id):
 def create_training_classifier(current_user, classifier_name, epoch, video_list, label_list):
     image_list_file_path, label_list_file_path, label_name_file_path = turkic_replacement.dump_image_and_label_files(
         video_list, label_list)
-    return
     session = db_util.renew_session()
     classifier = Classifier(name=classifier_name, owner_id=current_user.id)
     # add videos
@@ -99,6 +98,7 @@ def create_iterative_training_classifier(current_user, base_classifier_id, class
         session.close()
         return None
     label_list = str(base_classifier.labels).split(',')
+    print 'create iterative training, labels are %s ' % str(label_list)
 
     image_list_file_path, label_list_file_path, label_name_file_path = turkic_replacement.dump_image_and_label_files(
         video_list, label_list)
@@ -234,7 +234,7 @@ def create_short_running_test_classifier(base_classifier_id, time_remains=10):
     return host_port
 
 
-def create_evaluation(classifier_id, name, video_list, label_list):
+def create_evaluation(classifier_id, name, video_list):
     session = db_util.renew_session()
 
     classifier = session.query(Classifier).filter(Classifier.id == classifier_id).first()
@@ -242,6 +242,7 @@ def create_evaluation(classifier_id, name, video_list, label_list):
         session.close()
         print 'classifier not exist'
         return None
+    label_list = classifier.labels.split(',')
     evaluation_set = EvaluationSet(name=name)
 
     for video_id in video_list:
@@ -274,15 +275,23 @@ def push_classifier(classifier_id, push_tag_name):
     classifier = session.query(Classifier).filter(Classifier.id == classifier_id).first()
     if not classifier:
         session.close()
-        print 'classifier not exist'
-        return None
+        return 'classifier not exist'
     image_name = classifier.task_id
-    client = docker.from_env()
-    image = client.images.get(str(image_name))
-    tag_name = 'registry.cmusatyalab.org/junjuew/container-registry:%s' % str(push_tag_name)
-    image.tag(tag_name)
-    ret = client.images.push(tag_name)
-    print ret
+    # image_name = '97-2949905851'
+    session.close()
+    result = push_image_task.delay(image_name, push_tag_name)
+    ret = result.get()
+    if not ret:
+        return 'Error in pushing the image, see the celery log for detail'
+    return 'The image has been pushed, the name for that image is %s ' % str(push_tag_name)
+
+    # client = docker.from_env()
+    # image = client.images.get(str(image_name))
+    # tag_name = 'registry.cmusatyalab.org/junjuew/container-registry:%s' % str(push_tag_name)
+    # image.tag(tag_name)
+    # ret = client.images.push(tag_name)
+    # print ret
+
 
 
 # class TaskStatusRecord(Base):

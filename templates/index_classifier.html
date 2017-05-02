@@ -188,14 +188,6 @@
                         </select>
                         <input class="evaluation_param_videos" type="text" name="video_list" hidden>
                     </div>
-                    <div class="form-group form-inline">
-                        <label for="param_labels">Choose Labels:</label>
-
-                        <select class="evaluation_label-select" name="character" multiple="multiple">
-                        </select>
-                        <input type="text" class="evaluation_param_labels" name="label_list" hidden>
-                    </div>
-
                     <button class="btn" type="submit">Begin Evaluation</button>
                 </form>
 
@@ -275,13 +267,6 @@
             data: 'available_evaluation_videos',
             texts: {
                 searchplaceholder: 'Choose videos for the classifier'
-            }
-        });
-
-        $('.evaluation_label-select').searchableOptionList({
-            data: 'available_labels',
-            texts: {
-                searchplaceholder: 'Choose labels for the classifier'
             }
         });
 
@@ -370,17 +355,7 @@
             }
         }
 
-        var labels = "";
-        for (var i = 0; i < selected_labels.length; i++) {
-            if (i == selected_labels.length - 1) {
-                labels += (selected_labels[i].value);
-            } else {
-                labels += (selected_labels[i].value + ",");
-            }
-        }
-
         $($(this).find('.evaluation_param_videos')[0]).val(videos);
-        $($(this).find('.evaluation_param_labels')[0]).val(labels);
 
         console.log(videos);
     });
