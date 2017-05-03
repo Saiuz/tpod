@@ -342,9 +342,7 @@
     $(".item_evaluate_classifier").submit(function (e) {
 
         var video_select = $($(this).find('.evaluation_video-select')[0]);
-        var label_select = $($(this).find('.evaluation_label-select')[0]);
         var selected_videos = video_select.searchableOptionList().getSelection();
-        var selected_labels = label_select.searchableOptionList().getSelection();
 
         var videos = "";
         for (var i = 0; i < selected_videos.length; i++) {

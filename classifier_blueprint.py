@@ -316,3 +316,10 @@ def push_classifier():
         return controller.push_classifier(classifier_id, push_tag_name)
 
     return response_util.json_error_response(msg=str(form.errors))
+
+
+@classifier_page.route("/visual", methods=["GET"])
+@login_required
+def visual_classifier():
+    return render_template('index_visual.html')
+

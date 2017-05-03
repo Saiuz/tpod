@@ -374,7 +374,7 @@ def generate_frame_label(frame_labels):
         return line
 
 
-def dump_image_and_label_files(video_ids, label_name_array):
+def dump_image_and_label_files(video_ids, label_name_array, remove_none_frame=False):
     session = db_util.renew_session()
     if not os.path.exists(config.IMAGE_LIST_PATH):
         os.makedirs(config.IMAGE_LIST_PATH)
@@ -449,6 +449,23 @@ def dump_image_and_label_files(video_ids, label_name_array):
                     current_frame_labels.append(label_boxes)
                 # generate the format for that frame of labels
                 label_list_array.append(generate_frame_label(current_frame_labels))
+
+    if remove_none_frame:
+        filled_image_list_array = []
+        filled_label_list_array = []
+        for i, frame_item in enumerate(label_list_array):
+            # traverse through the frame, if there is no label exist, remove it
+            print len(frame_item)
+            if len(frame_item) >= len(label_name_array):
+                # the length should be at least the length of a rect
+                filled_image_list_array.append(image_list_array[i])
+                filled_label_list_array.append(frame_item)
+            else:
+                print 'not labeled'
+        print 'before remove none labeled array: length: %s, after %s' % (
+            str(len(image_list_array)), str(len(filled_image_list_array)))
+        image_list_array = filled_image_list_array
+        label_list_array = filled_label_list_array
 
     total_frames = len(image_list_array)
     print 'total length of image %s, length of label %s, total frames %s' % (

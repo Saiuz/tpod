@@ -51,7 +51,7 @@ def delete_classifier(classifier_id):
 
 def create_training_classifier(current_user, classifier_name, epoch, video_list, label_list):
     image_list_file_path, label_list_file_path, label_name_file_path = turkic_replacement.dump_image_and_label_files(
-        video_list, label_list)
+        video_list, label_list, remove_none_frame=True)
     session = db_util.renew_session()
     classifier = Classifier(name=classifier_name, owner_id=current_user.id)
     # add videos
@@ -101,7 +101,7 @@ def create_iterative_training_classifier(current_user, base_classifier_id, class
     print 'create iterative training, labels are %s ' % str(label_list)
 
     image_list_file_path, label_list_file_path, label_name_file_path = turkic_replacement.dump_image_and_label_files(
-        video_list, label_list)
+        video_list, label_list, remove_none_frame=True)
 
     classifier = Classifier(name=classifier_name, owner_id=current_user.id)
     # add videos
@@ -155,7 +155,8 @@ def launch_training_docker_task(base_image_name, classifier_id, train_set_name, 
 
 def get_latest_task_status(classifier_id):
     session = db_util.renew_session()
-    classifier_query = session.query(TaskStatusRecord).filter(TaskStatusRecord.classifier_id == classifier_id).order_by(
+    classifier = session.query(Classifier).filter(Classifier.id == classifier_id).first()
+    classifier_query = session.query(TaskStatusRecord).filter(TaskStatusRecord.task_id == classifier.task_id).order_by(
         desc(TaskStatusRecord.update_time)).first()
     session.close()
     if classifier_query:
@@ -259,10 +260,11 @@ def create_evaluation(classifier_id, name, video_list):
 
     # prepare label data
     image_list_file_path, label_list_file_path, label_name_file_path = turkic_replacement.dump_image_and_label_files(
-        video_list, label_list)
+        video_list, label_list, remove_none_frame=True)
 
     # note: this evaluation set name is the unique name to indicate the file name for the label, video,
     # not the name of the data entity
+
     evaluation_set_name = os.path.splitext(ntpath.basename(str(image_list_file_path)))[0]
     evaluation_task.apply_async((classifier_id, docker_image_id, evaluation_set_name, evaluation_result_name))
 
@@ -285,22 +287,3 @@ def push_classifier(classifier_id, push_tag_name):
         return 'Error in pushing the image, see the celery log for detail'
     return 'The image has been pushed, the name for that image is %s ' % str(push_tag_name)
 
-    # client = docker.from_env()
-    # image = client.images.get(str(image_name))
-    # tag_name = 'registry.cmusatyalab.org/junjuew/container-registry:%s' % str(push_tag_name)
-    # image.tag(tag_name)
-    # ret = client.images.push(tag_name)
-    # print ret
-
-
-
-# class TaskStatusRecord(Base):
-#     __tablename__   = "task_status_records"
-#
-#     id              = Column(Integer, primary_key = True)
-#     task_id  = Column(String(250))
-#     classifier_id  = Column(String(250))
-#
-#     update_time  = DateTime()
-#
-#     body = Column(String(5000))
