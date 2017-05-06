@@ -7,6 +7,7 @@ import cv2
 import tempfile
 import tracking
 import trackutils
+import turkic.database as database
 from turkic.database import session
 from vision.track.interpolation import LinearFill
 import cStringIO
@@ -99,10 +100,16 @@ def actions(action):
 
 @vatic_page.route("/server/getjob/<int:id>/<int:verified>", methods=['GET'])
 def getjob(id, verified):
+    global session
     job = session.query(Job).filter(Job.id == id).first()
     if job is None:
+        # sometimes, the job is not found because this session is not refreshed
         print 'Job with id %s not found' % str(id)
-        return 'Job with id %s not found' % str(id)
+        session = database.connect()
+        job = session.query(Job).filter(Job.id == id).first()
+        if job is None:
+            # if it's still not found, return empty
+            return 'Job with id %s not found' % str(id)
 
     logger.debug("Found job {0}".format(job.id))
 
@@ -162,6 +169,8 @@ def getjob(id, verified):
 @vatic_page.route("/server/getboxesforjob/<int:id>", methods=['GET'])
 @vatic_handler
 def getboxesforjob(id):
+    global session
+    session = database.connect()
     job = session.query(Job).get(id)
     result = []
 

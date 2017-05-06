@@ -145,6 +145,7 @@ def create_training_classifier():
         print video_list
         label_list = form.label_list.data
         label_list = label_list.split(',')
+        label_list = util.get_unique_label_name(label_list)
         print label_list
 
         controller.create_training_classifier(current_user, classifier_name, epoch, video_list, label_list)
@@ -317,9 +318,4 @@ def push_classifier():
 
     return response_util.json_error_response(msg=str(form.errors))
 
-
-@classifier_page.route("/visual", methods=["GET"])
-@login_required
-def visual_classifier():
-    return render_template('index_visual.html')
 

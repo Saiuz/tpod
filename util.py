@@ -131,6 +131,12 @@ def get_request_result(url, payload, files, file_name):
     print 'write file finished'
 
 
+def get_unique_label_name(label_array):
+    label_ret = []
+    for label in label_array:
+        if label not in label_ret:
+            label_ret.append(label)
+    return label_ret
 
 
 
