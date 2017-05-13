@@ -4,6 +4,7 @@ import time
 
 import config
 import db_util
+from db_util import session
 import util
 from tpod_models import Classifier, EvaluationSet
 from vatic.models import Video, Label, Box, Path
@@ -42,17 +43,14 @@ def delete_classifier(classifier_id):
     2. label_list, image_list, label_name
     3. container, image
     '''
-    session = db_util.renew_session()
     classifier = session.query(Classifier).filter(Classifier.id == classifier_id).first()
     session.delete(classifier)
     session.commit()
-    session.close()
 
 
 def create_training_classifier(current_user, classifier_name, epoch, video_list, label_list):
     image_list_file_path, label_list_file_path, label_name_file_path = turkic_replacement.dump_image_and_label_files(
         video_list, label_list, remove_none_frame=True)
-    session = db_util.renew_session()
     classifier = Classifier(name=classifier_name, owner_id=current_user.id)
     # add videos
     classifier.training_image_list_file_path = image_list_file_path
@@ -87,15 +85,12 @@ def create_training_classifier(current_user, classifier_name, epoch, video_list,
     print 'launched the docker with task id %s ' % str(task_id)
     classifier.task_id = task_id
     session.commit()
-    session.close()
 
 
 def create_iterative_training_classifier(current_user, base_classifier_id, classifier_name, epoch, video_list):
-    session = db_util.renew_session()
 
     base_classifier = session.query(Classifier).filter(Classifier.id == base_classifier_id).first()
     if not base_classifier:
-        session.close()
         return None
     label_list = str(base_classifier.labels).split(',')
     print 'create iterative training, labels are %s ' % str(label_list)
@@ -140,7 +135,6 @@ def create_iterative_training_classifier(current_user, base_classifier_id, class
     print 'launched the pretrain docker with task id %s ' % str(task_id)
     classifier.task_id = task_id
     session.commit()
-    session.close()
 
 
 def launch_training_docker_task(base_image_name, classifier_id, train_set_name, epoch, weights=None):
@@ -154,13 +148,11 @@ def launch_training_docker_task(base_image_name, classifier_id, train_set_name, 
 
 
 def get_latest_task_status(classifier_id):
-    session = db_util.renew_session()
     classifier = session.query(Classifier).filter(Classifier.id == classifier_id).first()
     if classifier is None:
         return None
     classifier_query = session.query(TaskStatusRecord).filter(TaskStatusRecord.task_id == classifier.task_id).order_by(
         desc(TaskStatusRecord.update_time)).first()
-    session.close()
     if classifier_query:
         return classifier_query
     return None
@@ -174,8 +166,6 @@ def launch_test_docker_task(classifier_id, docker_image_id, time_remains, host_p
 
 
 def create_test_classifier(current_user, base_classifier_id, time_remains=1000):
-    session = db_util.renew_session()
-
     base_classifier = session.query(Classifier).filter(Classifier.id == base_classifier_id).first()
     if not base_classifier:
         return None
@@ -215,18 +205,13 @@ def create_test_classifier(current_user, base_classifier_id, time_remains=1000):
     classifier.image_id = task_id
     classifier.container_id = task_id
     session.commit()
-    session.close()
     return host_port
 
 
 def create_short_running_test_classifier(base_classifier_id, time_remains=10):
-    session = db_util.renew_session()
-
     base_classifier = session.query(Classifier).filter(Classifier.id == base_classifier_id).first()
     if not base_classifier:
-        session.close()
         return None
-    session.close()
 
     host_port = util.get_available_port()
     docker_image_id = base_classifier.task_id
@@ -238,11 +223,8 @@ def create_short_running_test_classifier(base_classifier_id, time_remains=10):
 
 
 def create_evaluation(classifier_id, name, video_list):
-    session = db_util.renew_session()
-
     classifier = session.query(Classifier).filter(Classifier.id == classifier_id).first()
     if not classifier:
-        session.close()
         print 'classifier not exist'
         return None
     label_list = classifier.labels.split(',')
@@ -270,19 +252,13 @@ def create_evaluation(classifier_id, name, video_list):
     evaluation_set_name = os.path.splitext(ntpath.basename(str(image_list_file_path)))[0]
     evaluation_task.apply_async((classifier_id, docker_image_id, evaluation_set_name, evaluation_result_name))
 
-    session.close()
-
 
 def push_classifier(classifier_id, push_tag_name):
-    session = db_util.renew_session()
-
     classifier = session.query(Classifier).filter(Classifier.id == classifier_id).first()
     if not classifier:
-        session.close()
         return 'classifier not exist'
     image_name = classifier.task_id
     # image_name = '97-2949905851'
-    session.close()
     result = push_image_task.delay(image_name, push_tag_name)
     ret = result.get()
     if not ret:

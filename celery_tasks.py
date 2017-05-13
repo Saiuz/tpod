@@ -10,6 +10,7 @@ import thread
 import sys
 from celery_model import TaskStatusRecord
 import db_util
+from db_util import session
 import docker
 import re
 import json
@@ -120,13 +121,11 @@ class TPODBaseTask(Task):
         self.status = state
         content = str(json.dumps(self.get_process_status()))
         print "get update " + content
-        session = db_util.renew_session()
         status = TaskStatusRecord(task_id=self.task_id, classifier_id=self.classifier_id)
         status.update_time = datetime.datetime.now()
         status.body = content
         session.add(status)
         session.commit()
-        session.close()
 
 
 class TPODTrainingTask(TPODBaseTask):
