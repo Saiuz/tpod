@@ -47,11 +47,6 @@ def delete_video():
     return response_util.json_error_response(msg=str(form.errors))
 
 
-@login_required
-def upload_video():
-    return Response('<p>Add video</p>')
-
-
 @video_page.route("/upload", methods=["POST"])
 def upload():
     if request.method == 'POST':
