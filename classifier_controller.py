@@ -156,6 +156,8 @@ def launch_training_docker_task(base_image_name, classifier_id, train_set_name, 
 def get_latest_task_status(classifier_id):
     session = db_util.renew_session()
     classifier = session.query(Classifier).filter(Classifier.id == classifier_id).first()
+    if classifier is None:
+        return None
     classifier_query = session.query(TaskStatusRecord).filter(TaskStatusRecord.task_id == classifier.task_id).order_by(
         desc(TaskStatusRecord.update_time)).first()
     session.close()

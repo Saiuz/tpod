@@ -439,7 +439,8 @@
                         } else if (task_type == 'test') {
                             $("#field-1-" + id).text("Time Remains: " + status_obj.time_remains)
                             $("#field-2-" + id).text("Request Number: " + status_obj.request_number)
-                            $("#field-3-" + id).text("Host Port: " + status_obj.host_port)
+                            var url = "http://" + window.location.host.split(":")[0] + ":" + status_obj.host_port;
+                            $("#field-3-" + id).html("Host Port: <a target='_blank' href=" + url + ">" + status_obj.host_port + " (Click to test real-time detection) </a>")
                         }
 
                         if (status_obj.status == "FINISH") {

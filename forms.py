@@ -4,6 +4,7 @@ from wtforms import PasswordField, IntegerField
 from wtforms.validators import DataRequired, EqualTo
 from wtforms import ValidationError
 import db_util
+from db_util import session
 from tpod_models import User, Classifier, EvaluationSet
 import wtforms.validators
 from vatic.models import *
@@ -66,13 +67,10 @@ class DeleteEvaluationForm(FlaskForm):
         rv = FlaskForm.validate(self)
         if not rv:
             return False
-        session = db_util.renew_session()
         evaluation = session.query(EvaluationSet).filter(EvaluationSet.id == self.evaluation_id.data).first()
         if not evaluation:
             self.evaluation_id.errors.append('evaluation not exist')
-            session.close()
             return False
-        session.close()
         return True
 
 
@@ -87,13 +85,10 @@ class DeleteClassifierForm(FlaskForm):
         rv = FlaskForm.validate(self)
         if not rv:
             return False
-        session = db_util.renew_session()
         classifier = session.query(Classifier).filter(Classifier.id == self.classifier_id.data).first()
         if not classifier:
             self.classifier_id.errors.append('classifier not exist')
-            session.close()
             return False
-        session.close()
         return True
 
 
@@ -144,13 +139,10 @@ class DeleteVideoForm(FlaskForm):
         rv = FlaskForm.validate(self)
         if not rv:
             return False
-        session = db_util.renew_session()
         video = session.query(Video).filter(Video.id == self.video_id.data).first()
         if not video:
             self.video_id.errors.append('video not exist')
-            session.close()
             return False
-        session.close()
         return True
 
 
@@ -165,13 +157,10 @@ class DeleteLabelForm(FlaskForm):
         rv = FlaskForm.validate(self)
         if not rv:
             return False
-        session = db_util.renew_session()
         label = session.query(Label).filter(Label.id == self.label_id.data).first()
         if not label:
             self.label_id.errors.append('label not exist')
-            session.close()
             return False
-        session.close()
         return True
 
 
@@ -187,14 +176,12 @@ class EditLabelForm(FlaskForm):
         rv = FlaskForm.validate(self)
         if not rv:
             return False
-        session = db_util.renew_session()
         label = session.query(Label).filter(Label.id == self.label_id.data).first()
         if not label:
             self.label_id.errors.append('label not exist')
             return False
         label.text = self.label_name.data
         session.commit()
-        session.close()
         return True
 
 
@@ -210,18 +197,14 @@ class AddLabelForm(FlaskForm):
         rv = FlaskForm.validate(self)
         if not rv:
             return False
-        session = db_util.renew_session()
         video = session.query(Video).filter(Video.id == self.video_id.data).first()
         if not video:
             self.video_id.errors.append('video not exist')
-            session.close()
             return False
         label = session.query(Label).filter(Label.videoid == self.video_id.data, Label.text == self.label_name.data).first()
         if label:
             self.label_name.errors.append('label already exist')
-            session.close()
             return False
-        session.close()
         return True
 
 
@@ -237,14 +220,11 @@ class LoginForm(FlaskForm):
         rv = FlaskForm.validate(self)
         if not rv:
             return False
-        session = db_util.renew_session()
         user = session.query(User).filter_by(username=self.username.data).first()
         if user is None or (not user.check_password(self.password.data)):
             self.username.errors.append('Invalid username or password')
-            session.close()
             return False
         self.user = user
-        session.close()
         return True
 
 
@@ -264,6 +244,4 @@ class SignupForm(FlaskForm):
         rv = FlaskForm.validate(self)
         if not rv:
             return False
-        session = db_util.renew_session()
         user = session.query(User).filter_by(username=self.username.data).first()
-        session.close()

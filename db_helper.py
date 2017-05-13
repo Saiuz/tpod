@@ -1,4 +1,5 @@
 import db_util
+from db_util import session
 from vatic.models import *
 from tpod_models import *
 import config
@@ -21,7 +22,6 @@ def generate_label_obj(label):
 
 
 def get_labeled_frames_count(label):
-    session = db_util.renew_session()
     frame_label_dict = dict()
     paths = session.query(Path).filter(Path.labelid == label.id).all()
     for path in paths:
@@ -38,7 +38,7 @@ def get_labeled_frames_count(label):
             item = [str(x1), str(y1), str(w), str(h)]
             item_str = key + ','.join(item)
             frame_label_dict[item_str] = True
-    session.close()
+    session.commit()
     return len(frame_label_dict)
 
 
@@ -65,39 +65,32 @@ def get_all_job_urls(video):
 
 
 def get_labels_of_video(video_id):
-    session = db_util.renew_session()
     query_result = session.query(Label).filter(Label.videoid == video_id)
     result = []
     for label in query_result:
         result.append(generate_label_obj(label))
-    session.close()
+    session.commit()
     return result
 
 
 def get_video_by_id(video_id):
-    session = db_util.renew_session()
     query_result = session.query(Video).filter(Video.id == video_id).first()
     if query_result:
         ret = generate_video_obj(query_result)
-        session.close()
         return ret
     else:
-        session.close()
         return None
 
 
 def get_videos_of_user(user_id):
-    session = db_util.renew_session()
     query_result = session.query(Video).filter(Video.owner_id == user_id).all()
     result = []
     for video in query_result:
         result.append(generate_video_obj(video))
-    session.close()
     return result
 
 
 def get_available_videos(user_id):
-    session = db_util.renew_session()
     query_result = session.query(Video).filter(Video.owner_id == user_id).all()
     result = []
     for video in query_result:
@@ -106,12 +99,10 @@ def get_available_videos(user_id):
             'id': video.id,
         }
         result.append(obj)
-    session.close()
     return result
 
 
 def get_available_evaluation_videos(user_id):
-    session = db_util.renew_session()
     query_result = session.query(Video).filter(Video.owner_id == user_id).all()
     result = []
     for video in query_result:
@@ -129,12 +120,10 @@ def get_available_evaluation_videos(user_id):
             'id': video.id,
         }
         result.append(obj)
-    session.close()
     return result
 
 
 def get_available_labels():
-    session = db_util.renew_session()
     query_result = session.query(Label).all()
     result = []
     for label in query_result:
@@ -146,12 +135,10 @@ def get_available_labels():
             'labeled_frame': get_labeled_frames_count(label)
         }
         result.append(obj)
-    session.close()
     return result
 
 
 def get_videos_labels_of_classifier(classifier):
-    session = db_util.renew_session()
     videos = []
     for video in classifier.videos:
         video_obj = {
@@ -164,7 +151,6 @@ def get_videos_labels_of_classifier(classifier):
         labels = str(classifier.labels).split(',')
     else:
         labels = []
-    session.close()
     return videos, labels
 
 
@@ -212,7 +198,6 @@ def get_evaluations_of_classifier(classifier):
 
 
 def get_classifiers_of_user(user_id):
-    session = db_util.renew_session()
     query_result = session.query(Classifier).filter(Classifier.owner_id == user_id).all()
     result = []
     for classifier in query_result:
@@ -231,5 +216,4 @@ def get_classifiers_of_user(user_id):
         print 'get task type %s' % str(classifier.task_type)
 
         result.append(obj)
-    session.close()
     return result

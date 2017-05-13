@@ -13,6 +13,7 @@ from classifier_blueprint import classifier_page
 from flask_bootstrap import Bootstrap
 import response_util
 import db_util
+from db_util import session
 import os
 
 from flask_script import Manager
@@ -47,9 +48,7 @@ login_manager.login_view = "login"
 
 @login_manager.user_loader
 def load_user(id):
-    session = db_util.renew_session()
     ret = session.query(User).filter(User.id == id).first()
-    session.close()
     return ret
 
 

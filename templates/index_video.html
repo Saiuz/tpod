@@ -61,7 +61,7 @@
                 <ul class="list_jobs">
                     {% for url_obj in video.job_urls %}
                     <li>
-                        <a href="{{url_obj.url}}">Click to Start Labeling Job {{url_obj.index}}</a>
+                        <a target="_blank" href="{{url_obj.url}}">Click to Start Labeling Job {{url_obj.index}}</a>
                     </li>
                     {% endfor%}
                 </ul>
@@ -79,64 +79,7 @@
         </tbody>
     </table>
 
-    <!--<h3> Videos:</h3>-->
-    <!--<ul id="list_video" class="list-group">-->
-    <!--{% for video in videos %}-->
-    <!--<li class="list-group-item">-->
-    <!--<div class="item_video">-->
-    <!--<h4 class="text_video_name"> {{video.name}}</h4>-->
 
-    <!--<div class="item_video_info">-->
-    <!--<h5> Labels:</h5>-->
-    <!--<ul class="list_labels list-group">-->
-    <!--{% for label in video.labels %}-->
-    <!--<li class="item_label list-group-item">-->
-    <!--<p class="item_label_name"> Name: {{label.name}}</p>-->
-    <!--<p class="item_label_frame_count"> Labeled Frame Count: {{label.labeled_frame}} (duplicates possible)</p>-->
-    <!--<form class="item_label_form item_label_form_edit form-inline" action="../label/edit" method="POST">-->
-    <!--<input hidden name="label_id" value="{{label.id}}">-->
-    <!--<div class="form-group">-->
-    <!--<input id="label_name" placeholder="Rename by type in name and 'Enter'" type="text" name="label_name" class="form-control label_edit"><br>-->
-    <!--</div>-->
-    <!--<button class="btn btn-primary label_edit_button" type="submit">Edit label</button>-->
-    <!--</form>-->
-
-    <!--<form class="item_label_form form-inline item_label_form_delete" action="../label/delete" method="POST">-->
-    <!--<input hidden name="label_id" value="{{label.id}}">-->
-    <!--<button class="btn btn-danger" type="submit">Delete label</button>-->
-    <!--</form>-->
-    <!--</li>-->
-    <!--{% endfor%}-->
-    <!--</ul>-->
-    <!--<h5> Add Labels:</h5>-->
-    <!--<form action="../label/add" method="POST" class="form-inline add_label_form">-->
-    <!--<input hidden name="video_id" value="{{video.id}}">-->
-    <!--<div class="form-group">-->
-    <!--<label >Label Name:</label>-->
-    <!--<input type="text" name="label_name" class="form-control">-->
-    <!--</div>-->
-    <!--<button class="btn btn-primary" type="submit">Add label</button>-->
-    <!--</form>-->
-
-    <!--<h5> Jobs:</h5>-->
-    <!--<ul class="list_jobs">-->
-    <!--{% for url_obj in video.job_urls %}-->
-    <!--<li >-->
-    <!--<a href="{{url_obj.url}}">Click to Start Labeling Job {{url_obj.index}}</a>-->
-    <!--</li>-->
-    <!--{% endfor%}-->
-    <!--</ul>-->
-
-    <!--</div>-->
-    <!--<form class="item_delete_video" action="delete" method="POST">-->
-    <!--<input hidden name="video_id" value="{{video.id}}">-->
-    <!--<button class="btn btn-danger" type="submit">Delete Video</button>-->
-    <!--</form>-->
-    <!--</div>-->
-    <!--</li>-->
-    <!--{% endfor%}-->
-    <!--</ul>-->
-    <!--<br>-->
     <h4> Upload Video (mp4/avi/m4v) or Zipped Image Sequence (zip):</h4>
     <form id="fileupload" action="upload" method="POST" enctype="multipart/form-data" class="form-inline">
         <div class="form-group">

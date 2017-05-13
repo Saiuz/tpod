@@ -4,6 +4,7 @@ from models import *
 from tpod_models import *
 import shutil
 import db_util
+from db_util import session
 from vatic import merge
 import velocity
 import time
@@ -11,7 +12,6 @@ import util
 
 
 def delete_video(video_id):
-    session = db_util.renew_session()
     video = session.query(Video).filter(Video.id == video_id).first()
     if video:
         # delete original file
@@ -62,9 +62,8 @@ def delete_video(video_id):
             session.delete(segment)
         session.delete(video)
         session.commit()
-        session.close()
         return True
-    session.close()
+    session.commit()
     return False
 
 
@@ -121,7 +120,7 @@ def extract_image_sequences(image_path_list, path_output):
     return True
 
 
-def load(video_name, video_path_output, labels, orig_file_path, user_id, segment_length=3000):
+def load(video_name, video_path_output, labels, orig_file_path, user_id, segment_length=2000):
     # video_name = slug
     # video_path_output = location
     first_frame_path = Video.getframepath(0, video_path_output)
@@ -145,7 +144,6 @@ def load(video_name, video_path_output, labels, orig_file_path, user_id, segment
     last_frame = image_exist(last_frame_path)
     if last_frame is None:
         return False
-    session = db_util.renew_session()
     query = session.query(Video).filter(Video.slug == video_name)
     if query.count() > 0:
         print "Video {0} already exists!".format(video_name)
@@ -185,7 +183,6 @@ def load(video_name, video_path_output, labels, orig_file_path, user_id, segment
                 labelcache[labeltext] = label
                 lastlabel = label
         session.commit()
-        session.close()
         return
     homographydir = os.path.abspath(os.path.join("homographies", video_name))
     if not os.path.isdir(homographydir):
@@ -224,7 +221,7 @@ def load(video_name, video_path_output, labels, orig_file_path, user_id, segment
         if labeltext[0] == "~":
             if lastlabel is None:
                 print "Cannot assign an attribute without a label!"
-                session.close()
+                session.commit()
                 return
             labeltext = labeltext[1:]
             attribute = Attribute(text=labeltext)
@@ -264,7 +261,6 @@ def load(video_name, video_path_output, labels, orig_file_path, user_id, segment
         session.add(segment)
         session.add(job)
     session.commit()
-    session.close()
 
 
 def image_exist(img_path):
@@ -375,7 +371,6 @@ def generate_frame_label(frame_labels):
 
 
 def dump_image_and_label_files(video_ids, label_name_array, remove_none_frame=False):
-    session = db_util.renew_session()
     if not os.path.exists(config.IMAGE_LIST_PATH):
         os.makedirs(config.IMAGE_LIST_PATH)
     if not os.path.exists(config.LABEL_LIST_PATH):
@@ -476,5 +471,5 @@ def dump_image_and_label_files(video_ids, label_name_array, remove_none_frame=Fa
     # create the labels.txt file
     util.write_list_to_file(label_name_array, label_name_path)
 
-    session.close()
+    session.commit()
     return image_file_path, label_file_path, label_name_path
