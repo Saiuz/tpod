@@ -139,4 +139,15 @@ def get_unique_label_name(label_array):
     return label_ret
 
 
+def get_dataset_path():
+    return os.getcwd() + '/dataset/'
+
+
+def get_eval_path():
+    return os.getcwd() + '/eval/'
+
+
+def get_classifier_image_name(classifier_name, classifier_id):
+    result_image_name = str(classifier_name) + '-id-' + str(classifier_id)
+    return result_image_name
 

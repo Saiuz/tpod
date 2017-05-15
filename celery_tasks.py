@@ -174,7 +174,7 @@ class TPODTrainingTask(TPODBaseTask):
 
 
 @app.task(bind=True, base=TPODTrainingTask)
-def train_task(self, base_image_name, result_image_name,  classifier_id, train_set_name, epoch, weights):
+def train_task(self, base_image_name, result_image_name, dataset_path, classifier_id, train_set_name, epoch, weights):
     self.init_task(classifier_id, train_set_name, epoch, weights)
     # example command inside the docker
     # /usr/bin/python tools/tpod_train_net.py --weights /VGG_CNN_M_1024.v2.caffemodel --output_dir .
@@ -185,7 +185,7 @@ def train_task(self, base_image_name, result_image_name,  classifier_id, train_s
     #       (str(weights), str(epoch), str(train_set_name))
     # proc = subprocess.Popen(['nvidia-docker', 'run', '--name', docker_name, 'nvidia/cuda', 'nvidia-smi'])
 
-    docker_data_volume = '/home/suanmiao/workspace/tpod/dataset/:/dataset'
+    docker_data_volume = str(dataset_path) + ':/dataset'
     proc = subprocess.Popen(['nvidia-docker', 'run', '-v', docker_data_volume, '--name', docker_name,
                              base_image_name, '/usr/bin/python', 'tools/tpod_train_net.py', '--weights', str(weights),
                              '--output_dir', '.', '--iter', str(epoch), '--train_set_name', str(train_set_name)])
@@ -340,7 +340,7 @@ class TPODEvaluationTask(TPODBaseTask):
 
 
 @app.task(bind=True, base=TPODEvaluationTask)
-def evaluation_task(self, classifier_id, docker_image_id, evaluation_set_name, evaluation_result_name):
+def evaluation_task(self, dataset_path, eval_path, classifier_id, docker_image_id, evaluation_set_name, evaluation_result_name):
     '''
     :param self:
     :param classifier_id: the classifier to evaluate
@@ -355,8 +355,8 @@ def evaluation_task(self, classifier_id, docker_image_id, evaluation_set_name, e
 
     image_name = docker_image_id
 
-    docker_data_volume = '/home/suanmiao/workspace/tpod/dataset/:/dataset'
-    docker_data_volume_eval = '/home/suanmiao/workspace/tpod/eval/:/eval'
+    docker_data_volume = str(dataset_path) + ':/dataset'
+    docker_data_volume_eval = str(eval_path) + ':/eval'
     example_cmd = 'python tools/tpod_eval_net.py --gpu 0 --output_dir . --eval_set_name %s --eval_result_name %s ' % \
                   (str(evaluation_set_name), str(evaluation_result_name))
     print 'execute: %s ' % str(example_cmd)

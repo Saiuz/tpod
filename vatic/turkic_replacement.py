@@ -450,7 +450,6 @@ def dump_image_and_label_files(video_ids, label_name_array, remove_none_frame=Fa
         filled_label_list_array = []
         for i, frame_item in enumerate(label_list_array):
             # traverse through the frame, if there is no label exist, remove it
-            print len(frame_item)
             if len(frame_item) >= len(label_name_array):
                 # the length should be at least the length of a rect
                 filled_image_list_array.append(image_list_array[i])

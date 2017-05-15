@@ -82,7 +82,7 @@ def create_training_classifier(current_user, classifier_name, epoch, video_list,
 
     base_image_name = 'faster-rcnn-primitive'
 
-    result_image_name = str(classifier_name) + '-id-' + str(classifier_id)
+    result_image_name = util.get_classifier_image_name(classifier_name, classifier_id)
 
     task_id = launch_training_docker_task(base_image_name, result_image_name, classifier_id, train_set_name, epoch)
     print 'launched the docker with task id %s ' % str(task_id)
@@ -135,7 +135,7 @@ def create_iterative_training_classifier(current_user, base_classifier_id, class
 
     base_image_name = str(base_classifier.task_id)
 
-    result_image_name = str(classifier_name) + '-id-' + str(classifier_id)
+    result_image_name = util.get_classifier_image_name(classifier_name, classifier_id)
     task_id = launch_training_docker_task(base_image_name, result_image_name, classifier_id, train_set_name, epoch, weights='iterative')
     print 'launched the pretrain docker with task id %s ' % str(task_id)
     classifier.task_id = task_id
@@ -148,7 +148,8 @@ def launch_training_docker_task(base_image_name, result_image_name, classifier_i
     task_id = str(classifier_id) + '-' + str(random.getrandbits(32))
     print 'classifier id %s, train set %s, epoch %s, weight %s ' % (
         str(classifier_id), str(train_set_name), str(epoch), str(weights))
-    train_task.apply_async((base_image_name, result_image_name, classifier_id, train_set_name, epoch, weights), task_id=task_id)
+    dataset_path = util.get_dataset_path()
+    train_task.apply_async((base_image_name, result_image_name, dataset_path, classifier_id, train_set_name, epoch, weights), task_id=task_id)
     return task_id
 
 
@@ -163,10 +164,10 @@ def get_latest_task_status(classifier_id):
     return None
 
 
-def launch_test_docker_task(classifier_id, docker_image_id, time_remains, host_port):
+def launch_test_docker_task(classifier_id, base_image_name, time_remains, host_port):
     task_id = str(classifier_id) + '-' + str(random.getrandbits(32))
     print 'launching test docker with task id %s ' % str(task_id)
-    test_task.apply_async((classifier_id, docker_image_id, time_remains, host_port), task_id=task_id)
+    test_task.apply_async((classifier_id, base_image_name, time_remains, host_port), task_id=task_id)
     return task_id
 
 
@@ -202,9 +203,9 @@ def create_test_classifier(current_user, base_classifier_id, time_remains=1000):
     classifier.training_start_time = int(time.time() * 1000)
 
     host_port = util.get_available_port()
-    docker_image_id = base_classifier.task_id
+    base_image_name = util.get_classifier_image_name(base_classifier.name, base_classifier.id)
 
-    task_id = launch_test_docker_task(classifier_id, docker_image_id, time_remains, host_port)
+    task_id = launch_test_docker_task(classifier_id, base_image_name, time_remains, host_port)
     print 'launched the test docker with task id %s ' % str(task_id)
     classifier.task_id = task_id
     classifier.image_id = task_id
@@ -219,10 +220,10 @@ def create_short_running_test_classifier(base_classifier_id, time_remains=10):
         return None
 
     host_port = util.get_available_port()
-    docker_image_id = base_classifier.task_id
+    base_image_name = util.get_classifier_image_name(base_classifier.name, base_classifier.id)
 
     fake_classifier_id = 'fake-' + str(base_classifier_id)
-    task_id = launch_test_docker_task(fake_classifier_id, docker_image_id, time_remains, host_port)
+    task_id = launch_test_docker_task(fake_classifier_id, base_image_name, time_remains, host_port)
     print 'launched the test docker with task id %s ' % str(task_id)
     return host_port
 
@@ -245,7 +246,7 @@ def create_evaluation(classifier_id, name, video_list):
     print 'created evaluation set with name %s id %s ' % (str(name), str(evaluation_set.id))
     evaluation_result_name = str(evaluation_set.id)
 
-    docker_image_id = classifier.task_id
+    base_image_name = util.get_classifier_image_name(classifier.name, classifier.id)
 
     # prepare label data
     image_list_file_path, label_list_file_path, label_name_file_path = turkic_replacement.dump_image_and_label_files(
@@ -254,15 +255,17 @@ def create_evaluation(classifier_id, name, video_list):
     # note: this evaluation set name is the unique name to indicate the file name for the label, video,
     # not the name of the data entity
 
+    dataset_path = util.get_dataset_path()
+    eval_path = util.get_eval_path()
     evaluation_set_name = os.path.splitext(ntpath.basename(str(image_list_file_path)))[0]
-    evaluation_task.apply_async((classifier_id, docker_image_id, evaluation_set_name, evaluation_result_name))
+    evaluation_task.apply_async((dataset_path, eval_path, classifier_id, base_image_name, evaluation_set_name, evaluation_result_name))
 
 
 def push_classifier(classifier_id, push_tag_name):
     classifier = session.query(Classifier).filter(Classifier.id == classifier_id).first()
     if not classifier:
         return 'classifier not exist'
-    image_name = classifier.task_id
+    image_name = util.get_classifier_image_name(classifier.name, classifier.id)
     # image_name = '97-2949905851'
     result = push_image_task.delay(image_name, push_tag_name)
     ret = result.get()

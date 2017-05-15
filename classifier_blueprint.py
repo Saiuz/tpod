@@ -285,7 +285,6 @@ def create_evaluation():
         if not os.path.exists(config.EVALUATION_PATH):
             os.makedirs(config.EVALUATION_PATH)
         classifier_id = form.classifier_id.data
-        session = db_util.renew_session()
         classifier = session.query(Classifier).filter(Classifier.id == classifier_id).first()
         if not classifier:
             session.close()
@@ -307,7 +306,6 @@ def push_classifier():
     form = PushClassifierForm(request.form)
     if form.validate():
         classifier_id = form.classifier_id.data
-        session = db_util.renew_session()
         classifier = session.query(Classifier).filter(Classifier.id == classifier_id).first()
         if not classifier:
             session.close()
