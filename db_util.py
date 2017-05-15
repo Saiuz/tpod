@@ -3,7 +3,7 @@ from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 import logging
 import config
-
+from sqlalchemy import exc
 
 logger = logging.getLogger("turkic.database")
 
@@ -15,7 +15,25 @@ except ImportError:
     session = None
     Session = None
 else:
-    engine = create_engine(config.database, pool_recycle = 3600)
+
+    # set listener for disconnect, then the pool will replace it with new one
+    class LookLively(object):
+        """Ensures that MySQL connections checked out of the pool are alive."""
+
+        def checkout(self, dbapi_con, con_record, con_proxy):
+            try:
+                try:
+                    dbapi_con.ping(False)
+                except TypeError:
+                    dbapi_con.ping()
+            except dbapi_con.OperationalError, ex:
+                if ex.args[0] in (2006, 2013, 2014, 2045, 2055):
+                    raise exc.DisconnectionError()
+                else:
+                    raise
+
+
+    engine = create_engine(config.database, pool_recycle = 3600, pool_size=100, listeners=[LookLively()])
 
     Session = sessionmaker(bind=engine)
     session = scoped_session(Session)

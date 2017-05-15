@@ -116,6 +116,13 @@ def signup():
     return redirect(url_for('login'))
 
 
+# add error handler, rollback the session when necessary
+@app.errorhandler(Exception)
+def internal_server_error(error):
+    session.rollback()
+    return app.handle_exception(error)
+
+
 if __name__ == '__main__':
     manager.run()
 
