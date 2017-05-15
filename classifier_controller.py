@@ -81,7 +81,10 @@ def create_training_classifier(current_user, classifier_name, epoch, video_list,
     train_set_name = os.path.splitext(ntpath.basename(str(image_list_file_path)))[0]
 
     base_image_name = 'faster-rcnn-primitive'
-    task_id = launch_training_docker_task(base_image_name, classifier_id, train_set_name, epoch)
+
+    result_image_name = str(classifier_name) + '-id-' + str(classifier_id)
+
+    task_id = launch_training_docker_task(base_image_name, result_image_name, classifier_id, train_set_name, epoch)
     print 'launched the docker with task id %s ' % str(task_id)
     classifier.task_id = task_id
     session.commit()
@@ -131,19 +134,21 @@ def create_iterative_training_classifier(current_user, base_classifier_id, class
     train_set_name = os.path.splitext(ntpath.basename(str(image_list_file_path)))[0]
 
     base_image_name = str(base_classifier.task_id)
-    task_id = launch_training_docker_task(base_image_name, classifier_id, train_set_name, epoch, weights='iterative')
+
+    result_image_name = str(classifier_name) + '-id-' + str(classifier_id)
+    task_id = launch_training_docker_task(base_image_name, result_image_name, classifier_id, train_set_name, epoch, weights='iterative')
     print 'launched the pretrain docker with task id %s ' % str(task_id)
     classifier.task_id = task_id
     session.commit()
 
 
-def launch_training_docker_task(base_image_name, classifier_id, train_set_name, epoch, weights=None):
+def launch_training_docker_task(base_image_name, result_image_name, classifier_id, train_set_name, epoch, weights=None):
     if weights is None:
         weights = '/VGG_CNN_M_1024.v2.caffemodel'
     task_id = str(classifier_id) + '-' + str(random.getrandbits(32))
     print 'classifier id %s, train set %s, epoch %s, weight %s ' % (
         str(classifier_id), str(train_set_name), str(epoch), str(weights))
-    train_task.apply_async((base_image_name, classifier_id, train_set_name, epoch, weights), task_id=task_id)
+    train_task.apply_async((base_image_name, result_image_name, classifier_id, train_set_name, epoch, weights), task_id=task_id)
     return task_id
 
 

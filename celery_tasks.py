@@ -174,12 +174,12 @@ class TPODTrainingTask(TPODBaseTask):
 
 
 @app.task(bind=True, base=TPODTrainingTask)
-def train_task(self, base_image_name, classifier_id, train_set_name, epoch, weights):
+def train_task(self, base_image_name, result_image_name,  classifier_id, train_set_name, epoch, weights):
     self.init_task(classifier_id, train_set_name, epoch, weights)
     # example command inside the docker
     # /usr/bin/python tools/tpod_train_net.py --weights /VGG_CNN_M_1024.v2.caffemodel --output_dir .
     # --iter 2000 --train_set_name 1492198
-    docker_name = str(self.task_id)
+    docker_name = result_image_name
 
     # cmd = '/usr/bin/python tools/tpod_train_net.py --weights %s --output_dir . --iter %s --train_set_name %s' % \
     #       (str(weights), str(epoch), str(train_set_name))
