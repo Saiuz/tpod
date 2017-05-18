@@ -181,10 +181,6 @@ def train_task(self, base_image_name, result_image_name, dataset_path, classifie
     # --iter 2000 --train_set_name 1492198
     docker_name = result_image_name
 
-    # cmd = '/usr/bin/python tools/tpod_train_net.py --weights %s --output_dir . --iter %s --train_set_name %s' % \
-    #       (str(weights), str(epoch), str(train_set_name))
-    # proc = subprocess.Popen(['nvidia-docker', 'run', '--name', docker_name, 'nvidia/cuda', 'nvidia-smi'])
-
     docker_data_volume = str(dataset_path) + ':/dataset'
     proc = subprocess.Popen(['nvidia-docker', 'run', '-v', docker_data_volume, '--name', docker_name,
                              base_image_name, '/usr/bin/python', 'tools/tpod_train_net.py', '--weights', str(weights),

@@ -59,6 +59,7 @@ def vatic_handler(func):
 
 
 def getallvideos():
+    session = db_util.session
     query = session.query(Video)
     videos = []
     for video in query:
@@ -88,6 +89,7 @@ handlers = {}
 
 @vatic_page.route("/server/<string:action>", methods=['GET'])
 def actions(action):
+    session = db_util.session
     logger.debug('action input {}'.format(action))
     if action in handlers:
         try:
@@ -100,7 +102,7 @@ def actions(action):
 
 @vatic_page.route("/server/getjob/<int:id>/<int:verified>", methods=['GET'])
 def getjob(id, verified):
-    global session
+    session = db_util.session
     job = session.query(Job).filter(Job.id == id).first()
     if job is None:
         # sometimes, the job is not found because this session is not refreshed
@@ -169,8 +171,7 @@ def getjob(id, verified):
 @vatic_page.route("/server/getboxesforjob/<int:id>", methods=['GET'])
 @vatic_handler
 def getboxesforjob(id):
-    global session
-    session = database.connect()
+    session = db_util.session
     job = session.query(Job).get(id)
     result = []
 
@@ -262,6 +263,7 @@ def readpaths(tracks):
 @vatic_page.route("/server/savejob/<int:id>", methods=['POST'])
 @vatic_handler
 def savejob(id):
+    session = db_util.session
     tracks = request.get_json(force=True)
     job = session.query(Job).get(id)
 
@@ -345,6 +347,7 @@ def savejob(id):
 @vatic_page.route("/server/validatejob/<int:id>", methods=['POST'])
 @vatic_handler
 def validatejob(id):
+    session = db_util.session
     tracks = request.data
     job = session.query(Job).get(id)
     paths = readpaths(tracks)
@@ -355,6 +358,7 @@ def validatejob(id):
 @vatic_page.route("/server/respawnjob/<int:id>", methods=['GET'])
 @vatic_handler
 def respawnjob(id):
+    session = db_util.session
     job = session.query(Job).get(id)
 
     replacement = job.markastraining()

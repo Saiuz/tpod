@@ -133,7 +133,7 @@ def create_iterative_training_classifier(current_user, base_classifier_id, class
     classifier.training_start_time = int(time.time() * 1000)
     train_set_name = os.path.splitext(ntpath.basename(str(image_list_file_path)))[0]
 
-    base_image_name = str(base_classifier.task_id)
+    base_image_name = util.get_classifier_image_name(base_classifier.name, base_classifier.id)
 
     result_image_name = util.get_classifier_image_name(classifier_name, classifier_id)
     task_id = launch_training_docker_task(base_image_name, result_image_name, classifier_id, train_set_name, epoch, weights='iterative')

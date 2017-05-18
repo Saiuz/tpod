@@ -4,6 +4,7 @@ from flask import Flask, request, render_template, session, redirect, url_for, f
     abort, Response
 from flask import jsonify
 import db_util
+from db_util import session
 import db_helper
 from forms import *
 import response_util
@@ -115,7 +116,6 @@ def delete_classifier():
 def delete_evaluation():
     form = DeleteEvaluationForm(request.form)
     if form.validate():
-        session = db_util.renew_session()
         evaluation = session.query(EvaluationSet).filter(EvaluationSet.id == form.evaluation_id.data).first()
         session.delete(evaluation)
         session.commit()
@@ -172,7 +172,6 @@ def create_iterative_classifier():
         # very original (that from the base classifier), thus the labels list should also be organized in
         # that order
         base_classifier_id = form.base_classifier_id.data
-        session = db_util.renew_session()
         classifier = session.query(Classifier).filter(Classifier.id == base_classifier_id).first()
         if not classifier:
             session.close()

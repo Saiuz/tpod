@@ -49,6 +49,14 @@ else:
         """
         return Session()
 
+    def renew_session():
+        global session
+        session = connect()
+
+    def close_session():
+        global session
+        session.close()
+
     def install():
         """
         Installs the database, but does not drop existing tables.

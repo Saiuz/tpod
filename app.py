@@ -71,6 +71,21 @@ admin.register(Video, session=session)
 admin.register(Classifier, session=session)
 
 
+@app.before_request
+def before_request():
+    db_util.renew_session()
+    print 'before request'
+
+
+@app.teardown_request
+def teardown_request(exception):
+    db_util.close_session()
+    print 'after request'
+    # db = getattr(g, 'db', None)
+    # if db is not None:
+    #    db.close()
+
+
 @app.route("/", methods=["GET", "POST"])
 @login_required
 def index():
