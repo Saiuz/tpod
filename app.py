@@ -26,7 +26,12 @@ app.register_blueprint(video_page)
 app.register_blueprint(label_page)
 app.register_blueprint(classifier_page)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://vatic:vatic@localhost/vatic'
+db_user = os.environ.get('DB_USER', 'tpod')
+db_name = os.environ.get('DB_NAME', 'tpod')
+db_password = os.environ.get('DB_PASSWORD', 'none')
+app.config['SQLALCHEMY_DATABASE_URI'] = "mysql://{}:{}@localhost/{}".format(db_user,
+                                                                            db_password,
+                                                                            db_name)
 
 migrate = Migrate(app, db_util.Base)
 
