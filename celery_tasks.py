@@ -1,5 +1,5 @@
-from celery import Celery
 from celery import Task
+from celery.signals import task_postrun
 from celery.utils.log import get_task_logger
 import datetime
 import subprocess
@@ -16,9 +16,8 @@ import random
 import config
 import requests
 
-from extensions import db
+from extensions import db, tpod_celery
 
-app = Celery('tpod_task', broker='amqp://localhost', backend='rpc://localhost')
 logger = get_task_logger('tpod')
 
 TASK_TYPE_NONE = 1
@@ -32,7 +31,15 @@ STATE_PROGRESS = 'PROGRESS'
 STATE_FINISH = 'FINISH'
 STATE_ERROR = 'ERROR'
 
-
+# http://stackoverflow.com/questions/12044776/how-to-use-flask-sqlalchemy-in-a-celery-task
+@task_postrun.connect
+def close_session(*args, **kwargs):
+    # Flask SQLAlchemy will automatically create new sessions for you from 
+    # a scoped session factory, given that we are maintaining the same app
+    # context, this ensures tasks have a fresh session (e.g. session errors 
+    # won't propagate across tasks)
+    db.session.remove()
+    
 class TPODBaseTask(Task):
     def __init__(self):
         self.task_type = TASK_TYPE_NONE
@@ -174,7 +181,7 @@ class TPODTrainingTask(TPODBaseTask):
         return log
 
 
-@app.task(bind=True, base=TPODTrainingTask)
+@tpod_celery.task(bind=True, base=TPODTrainingTask)
 def train_task(self, base_image_name, result_image_name, dataset_path, classifier_id, train_set_name, epoch, weights):
     self.init_task(classifier_id, train_set_name, epoch, weights)
     # example command inside the docker
@@ -259,7 +266,7 @@ class TPODTestTask(TPODBaseTask):
         return log
 
 
-@app.task(bind=True, base=TPODTestTask)
+@tpod_celery.task(bind=True, base=TPODTestTask)
 def test_task(self, classifier_id, docker_image_id, time_remains, host_port):
     self.init_task(classifier_id, host_port, time_remains)
 
@@ -336,7 +343,7 @@ class TPODEvaluationTask(TPODBaseTask):
         return log
 
 
-@app.task(bind=True, base=TPODEvaluationTask)
+@tpod_celery.task(bind=True, base=TPODEvaluationTask)
 def evaluation_task(self, dataset_path, eval_path, classifier_id, docker_image_id, evaluation_set_name, evaluation_result_name):
     '''
     :param self:
@@ -396,7 +403,7 @@ def evaluation_task(self, dataset_path, eval_path, classifier_id, docker_image_i
     self.update_status(STATE_FINISH)
 
 
-@app.task(trail=True)
+@tpod_celery.task(trail=True)
 def push_image_task(image_name, push_tag_name):
     client = docker.from_env()
     print 'begin pushing image'
