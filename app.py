@@ -94,7 +94,7 @@ def teardown_request(exception):
 @app.route("/", methods=["GET", "POST"])
 @login_required
 def index():
-    return redirect('video/list')
+    return redirect('/video/list')
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -107,7 +107,7 @@ def login():
             user = form.user
             print "login success "
             login_user(user)
-            return redirect(url_for('/'))
+            return response_util.json_success_response(redirect='/video/list')
         else:
             return response_util.json_error_response(msg=str(form.errors))
     else:
