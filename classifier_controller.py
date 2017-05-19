@@ -3,8 +3,6 @@ import os
 import time
 
 import config
-import db_util
-from db_util import session
 import util
 from tpod_models import Classifier, EvaluationSet
 from vatic.models import Video, Label, Box, Path
@@ -14,7 +12,7 @@ from celery_model import TaskStatusRecord
 from sqlalchemy import desc
 from vatic import turkic_replacement
 import docker
-
+from extensions import db
 
 # the basic structure: class is separated by '.' label is separated by ';' coordination is separated by ','
 def generate_frame_label(frame_labels):
@@ -43,9 +41,8 @@ def delete_classifier(classifier_id):
     2. label_list, image_list, label_name
     3. container, image
     '''
-    classifier = session.query(Classifier).filter(Classifier.id == classifier_id).first()
-    session.delete(classifier)
-    session.commit()
+    classifier = Classifier.query.filter(Classifier.id == classifier_id).first()
+    classifier.delete()
 
 
 def create_training_classifier(current_user, classifier_name, epoch, video_list, label_list):
@@ -64,11 +61,12 @@ def create_training_classifier(current_user, classifier_name, epoch, video_list,
 
     # add these labels and videos to the classifier
     for video_id in video_list:
-        video = session.query(Video).filter(Video.id == video_id).first()
+        video = Video.query.filter(Video.id == video_id).first()
         if video:
             classifier.videos.append(video)
     classifier.labels = ','.join(label_list)
 
+    session = db.session
     session.add(classifier)
     session.flush()
 
@@ -92,7 +90,7 @@ def create_training_classifier(current_user, classifier_name, epoch, video_list,
 
 def create_iterative_training_classifier(current_user, base_classifier_id, classifier_name, epoch, video_list):
 
-    base_classifier = session.query(Classifier).filter(Classifier.id == base_classifier_id).first()
+    base_classifier = Classifier.query.filter(Classifier.id == base_classifier_id).first()
     if not base_classifier:
         return None
     label_list = str(base_classifier.labels).split(',')
@@ -117,11 +115,12 @@ def create_iterative_training_classifier(current_user, base_classifier_id, class
     # add these labels and videos to the classifier
     classifier.videos = base_classifier.videos
     for video_id in video_list:
-        video = session.query(Video).filter(Video.id == video_id).first()
+        video = Video.query.filter(Video.id == video_id).first()
         if video:
             classifier.videos.append(video)
     classifier.labels = ','.join(label_list)
 
+    session = db.session
     session.add(classifier)
     session.flush()
 
@@ -154,10 +153,10 @@ def launch_training_docker_task(base_image_name, result_image_name, classifier_i
 
 
 def get_latest_task_status(classifier_id):
-    classifier = session.query(Classifier).filter(Classifier.id == classifier_id).first()
+    classifier = Classifier.query.filter(Classifier.id == classifier_id).first()
     if classifier is None:
         return None
-    classifier_query = session.query(TaskStatusRecord).filter(TaskStatusRecord.task_id == classifier.task_id).order_by(
+    classifier_query = TaskStatusRecord.query.filter(TaskStatusRecord.task_id == classifier.task_id).order_by(
         desc(TaskStatusRecord.update_time)).first()
     if classifier_query:
         return classifier_query
@@ -172,7 +171,7 @@ def launch_test_docker_task(classifier_id, base_image_name, time_remains, host_p
 
 
 def create_test_classifier(current_user, base_classifier_id, time_remains=1000):
-    base_classifier = session.query(Classifier).filter(Classifier.id == base_classifier_id).first()
+    base_classifier = Classifier.query.filter(Classifier.id == base_classifier_id).first()
     if not base_classifier:
         return None
 
@@ -193,6 +192,7 @@ def create_test_classifier(current_user, base_classifier_id, time_remains=1000):
     classifier.videos = base_classifier.videos
     classifier.labels = base_classifier.labels
 
+    session = db.session
     session.add(classifier)
     session.flush()
 
@@ -215,7 +215,7 @@ def create_test_classifier(current_user, base_classifier_id, time_remains=1000):
 
 
 def create_short_running_test_classifier(base_classifier_id, time_remains=10):
-    base_classifier = session.query(Classifier).filter(Classifier.id == base_classifier_id).first()
+    base_classifier = Classifier.query.filter(Classifier.id == base_classifier_id).first()
     if not base_classifier:
         return None
 
@@ -229,7 +229,7 @@ def create_short_running_test_classifier(base_classifier_id, time_remains=10):
 
 
 def create_evaluation(classifier_id, name, video_list):
-    classifier = session.query(Classifier).filter(Classifier.id == classifier_id).first()
+    classifier = Classifier.query.filter(Classifier.id == classifier_id).first()
     if not classifier:
         print 'classifier not exist'
         return None
@@ -237,10 +237,11 @@ def create_evaluation(classifier_id, name, video_list):
     evaluation_set = EvaluationSet(name=name)
 
     for video_id in video_list:
-        video = session.query(Video).filter(Video.id == video_id).first()
+        video = Video.query.filter(Video.id == video_id).first()
         evaluation_set.videos.append(video)
 
     classifier.evaluation_sets.append(evaluation_set)
+    session = db.session
     session.add(evaluation_set)
     session.commit()
     print 'created evaluation set with name %s id %s ' % (str(name), str(evaluation_set.id))
@@ -262,7 +263,7 @@ def create_evaluation(classifier_id, name, video_list):
 
 
 def push_classifier(classifier_id, push_tag_name):
-    classifier = session.query(Classifier).filter(Classifier.id == classifier_id).first()
+    classifier = Classifier.query.filter(Classifier.id == classifier_id).first()
     if not classifier:
         return 'classifier not exist'
     image_name = util.get_classifier_image_name(classifier.name, classifier.id)

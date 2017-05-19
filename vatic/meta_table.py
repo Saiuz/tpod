@@ -1,16 +1,14 @@
-from sqlalchemy import Column, Integer, Float, String, Boolean
-from sqlalchemy import ForeignKey, Table, PickleType
-from sqlalchemy.orm import relationship, backref
-from db_util import Base
+from database import Column, Integer, Float, String, Boolean
+from database import Model, ForeignKey, Table
+from database import relationship, backref
 
-
-video_evaluation_association_table = Table('video_evaluation_association', Base.metadata,
+video_evaluation_association_table = Table('video_evaluation_association', 
     Column('evaluation_sets_id', Integer, ForeignKey('evaluation_sets.id')),
     Column('videos_id', Integer, ForeignKey('videos.id'))
 )
 
 
-classifier_evaluation_association_table = Table('classifier_evaluation_association', Base.metadata,
+classifier_evaluation_association_table = Table('classifier_evaluation_association',
     Column('evaluation_sets_id', Integer, ForeignKey('evaluation_sets.id')),
     Column('classifiers_id', Integer, ForeignKey('classifiers.id'))
 )

@@ -11,3 +11,4 @@ dataset
 eval
 vatic/dependencies/turkic/dist/turkic-0.2.5-py2.7.egg
 vatic/dependencies/turkic/turkic.egg-info
+migrations

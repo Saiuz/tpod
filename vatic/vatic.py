@@ -7,8 +7,6 @@ import cv2
 import tempfile
 import tracking
 import trackutils
-import turkic.database as database
-from turkic.database import session
 from vision.track.interpolation import LinearFill
 import cStringIO
 from models import *
@@ -19,11 +17,10 @@ import merge
 from functools import wraps
 import logging
 import sys
+from extensions import db
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 import config
-import pdb
-import db_util
 
 HOME_BASE = os.path.dirname(os.path.abspath(__file__))
 STATIC_BASE = os.path.join(HOME_BASE, 'public')
@@ -59,7 +56,7 @@ def vatic_handler(func):
 
 
 def getallvideos():
-    session = db_util.session
+    session = db.session
     query = session.query(Video)
     videos = []
     for video in query:
@@ -89,7 +86,7 @@ handlers = {}
 
 @vatic_page.route("/server/<string:action>", methods=['GET'])
 def actions(action):
-    session = db_util.session
+    session = db.session
     logger.debug('action input {}'.format(action))
     if action in handlers:
         try:
@@ -102,16 +99,11 @@ def actions(action):
 
 @vatic_page.route("/server/getjob/<int:id>/<int:verified>", methods=['GET'])
 def getjob(id, verified):
-    session = db_util.session
+    session = db.session
     job = session.query(Job).filter(Job.id == id).first()
     if job is None:
-        # sometimes, the job is not found because this session is not refreshed
-        print 'Job with id %s not found' % str(id)
-        session = database.connect()
-        job = session.query(Job).filter(Job.id == id).first()
-        if job is None:
-            # if it's still not found, return empty
-            return 'Job with id %s not found' % str(id)
+        # if it's still not found, return empty
+        return 'Job with id %s not found' % str(id)
 
     logger.debug("Found job {0}".format(job.id))
 
@@ -171,7 +163,7 @@ def getjob(id, verified):
 @vatic_page.route("/server/getboxesforjob/<int:id>", methods=['GET'])
 @vatic_handler
 def getboxesforjob(id):
-    session = db_util.session
+    session = db.session
     job = session.query(Job).get(id)
     result = []
 
@@ -201,6 +193,7 @@ def getboxesforjob(id):
 
 def readpath(label, userid, done, track, attributes):
     #    logger.debug('{} {} {} {}'.format(label,userid,done,attributes))
+    session = db.session
     path = Path()
 
     path.label = session.query(Label).get(label)
@@ -263,7 +256,7 @@ def readpaths(tracks):
 @vatic_page.route("/server/savejob/<int:id>", methods=['POST'])
 @vatic_handler
 def savejob(id):
-    session = db_util.session
+    session = db.session
     tracks = request.get_json(force=True)
     job = session.query(Job).get(id)
 
@@ -347,7 +340,7 @@ def savejob(id):
 @vatic_page.route("/server/validatejob/<int:id>", methods=['POST'])
 @vatic_handler
 def validatejob(id):
-    session = db_util.session
+    session = db.session
     tracks = request.data
     job = session.query(Job).get(id)
     paths = readpaths(tracks)
@@ -358,7 +351,7 @@ def validatejob(id):
 @vatic_page.route("/server/respawnjob/<int:id>", methods=['GET'])
 @vatic_handler
 def respawnjob(id):
-    session = db_util.session
+    session = db.session
     job = session.query(Job).get(id)
 
     replacement = job.markastraining()
@@ -376,6 +369,7 @@ def respawnjob(id):
                   methods=['POST'])
 @vatic_handler
 def trackforward(id, start, end, tracker, trackid):
+    session = db.session
     start = int(start)
     trackid = int(trackid)
     job = session.query(Job).get(id)

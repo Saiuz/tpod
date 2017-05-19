@@ -3,15 +3,16 @@ import cv2
 from models import *
 from tpod_models import *
 import shutil
-import db_util
-from db_util import session
 from vatic import merge
 import velocity
 import time
 import util
 
+from extensions import db
+
 
 def delete_video(video_id):
+    session = db.session
     video = session.query(Video).filter(Video.id == video_id).first()
     if video:
         # delete original file
@@ -121,6 +122,7 @@ def extract_image_sequences(image_path_list, path_output):
 
 
 def load(video_name, video_path_output, labels, orig_file_path, user_id, segment_length=2000):
+    session = db.session
     # video_name = slug
     # video_path_output = location
     first_frame_path = Video.getframepath(0, video_path_output)
@@ -384,6 +386,7 @@ def dump_image_and_label_files(video_ids, label_name_array, remove_none_frame=Fa
     label_file_path = config.LABEL_LIST_PATH + timestamp + '.txt'
     label_name_path = config.LABEL_NAME_PATH + timestamp + '.txt'
 
+    session = db.session
     def getdata(video_id):
         video = session.query(Video).filter(Video.id == video_id)
         if video.count() == 0:

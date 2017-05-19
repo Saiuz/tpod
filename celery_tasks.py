@@ -9,14 +9,14 @@ import util
 import thread
 import sys
 from celery_model import TaskStatusRecord
-import db_util
-from db_util import session
 import docker
 import re
 import json
 import random
 import config
 import requests
+
+from extensions import db
 
 app = Celery('tpod_task', broker='amqp://localhost', backend='rpc://localhost')
 logger = get_task_logger('tpod')
@@ -124,6 +124,7 @@ class TPODBaseTask(Task):
         status = TaskStatusRecord(task_id=self.task_id, classifier_id=self.classifier_id)
         status.update_time = datetime.datetime.now()
         status.body = content
+        session = db.session
         session.add(status)
         session.commit()
 

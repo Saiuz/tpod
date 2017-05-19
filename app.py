@@ -12,13 +12,10 @@ from label_blueprint import label_page
 from classifier_blueprint import classifier_page
 from flask_bootstrap import Bootstrap
 import response_util
-import db_util
-from db_util import session
+from flask_sqlalchemy import SQLAlchemy
 import os
-
-from flask_script import Manager
-from flask_migrate import Migrate, MigrateCommand
-
+from flask_migrate import MigrateCommand
+from extensions import db, login_manager, migrate, manager
 
 app = Flask(__name__, static_url_path='/static', template_folder='/templates')
 app.register_blueprint(vatic_page)
@@ -26,34 +23,34 @@ app.register_blueprint(video_page)
 app.register_blueprint(label_page)
 app.register_blueprint(classifier_page)
 
+#### plugin db
 db_user = os.environ.get('DB_USER', 'tpod')
 db_name = os.environ.get('DB_NAME', 'tpod')
 db_password = os.environ.get('DB_PASSWORD', 'none')
 app.config['SQLALCHEMY_DATABASE_URI'] = "mysql://{}:{}@localhost/{}".format(db_user,
                                                                             db_password,
                                                                             db_name)
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test.db'
 
-migrate = Migrate(app, db_util.Base)
-
-manager = Manager(app)
+db.init_app(app)
+login_manager.init_app(app)
+migrate.init_app(app, db)
+login_manager.init_app(app)
+# https://github.com/smurfix/flask-script/issues/122
+manager.app = app
 manager.add_command('db', MigrateCommand)
 
 # bootstrap
 Bootstrap(app)
 
-# initialize login
-login_manager = LoginManager()
-login_manager.init_app(app)
-
 app.config['CSRF_ENABLED'] = True
 app.config['SECRET_KEY'] = 'wtfwtfwtf?'
-
 login_manager.login_view = "login"
 
 
 @login_manager.user_loader
 def load_user(id):
-    ret = session.query(User).filter(User.id == id).first()
+    ret = User.query.filter(User.id == id).first()
     return ret
 
 
@@ -70,25 +67,10 @@ class MyAdminIndexView(AdminIndexView):
 
 # initialize super admin
 admin = Admin(app, "TPOD Models", index_view=MyAdminIndexView())
-admin.add_view(MyModelView(User, session))
+admin.add_view(MyModelView(User, db.session))
 
-admin.register(Video, session=session)
-admin.register(Classifier, session=session)
-
-
-@app.before_request
-def before_request():
-    db_util.renew_session()
-    print 'before request'
-
-
-@app.teardown_request
-def teardown_request(exception):
-    db_util.close_session()
-    print 'after request'
-    # db = getattr(g, 'db', None)
-    # if db is not None:
-    #    db.close()
+admin.register(Video, session=db.session)
+admin.register(Classifier, session=db.session)
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -126,21 +108,19 @@ def signup():
     if form.validate():
         username = form.username.data
         password = form.password.data
-        registered_user = session.query(User).filter(User.username == username).first()
+        registered_user = User.query.filter(User.username == username).first()
         if registered_user is None:
-            user = User(password= password, username=username)
-            session.add(user)
-            session.commit()
+            User.create(password= password, username=username)
             flash('User successfully registered')
             return Response('Registered')
     return redirect(url_for('login'))
 
 
-# add error handler, rollback the session when necessary
-@app.errorhandler(Exception)
-def internal_server_error(error):
-    session.rollback()
-    return app.handle_exception(error)
+# # add error handler, rollback the session when necessary
+# @app.errorhandler(Exception)
+# def internal_server_error(error):
+#     session.rollback()
+#     return app.handle_exception(error)
 
 
 if __name__ == '__main__':

@@ -1,5 +1,3 @@
-import db_util
-from db_util import session
 from vatic.models import *
 from tpod_models import *
 import config
@@ -23,9 +21,9 @@ def generate_label_obj(label):
 
 def get_labeled_frames_count(label):
     frame_label_dict = dict()
-    paths = session.query(Path).filter(Path.labelid == label.id).all()
+    paths = Path.query.filter(Path.labelid == label.id).all()
     for path in paths:
-        boxes = session.query(Box).filter(Box.pathid == path.id).all()
+        boxes = Box.query.filter(Box.pathid == path.id).all()
         for box in boxes:
             box_frame = box.frame
             # insert the box into the map, key is the frame id, value is an array of label
@@ -38,7 +36,6 @@ def get_labeled_frames_count(label):
             item = [str(x1), str(y1), str(w), str(h)]
             item_str = key + ','.join(item)
             frame_label_dict[item_str] = True
-    session.commit()
     return len(frame_label_dict)
 
 
@@ -65,16 +62,15 @@ def get_all_job_urls(video):
 
 
 def get_labels_of_video(video_id):
-    query_result = session.query(Label).filter(Label.videoid == video_id)
+    query_result = Label.query.filter(Label.videoid == video_id)
     result = []
     for label in query_result:
         result.append(generate_label_obj(label))
-    session.commit()
     return result
 
 
 def get_video_by_id(video_id):
-    query_result = session.query(Video).filter(Video.id == video_id).first()
+    query_result = Video.query.filter(Video.id == video_id).first()
     if query_result:
         ret = generate_video_obj(query_result)
         return ret
@@ -83,7 +79,7 @@ def get_video_by_id(video_id):
 
 
 def get_videos_of_user(user_id):
-    query_result = session.query(Video).filter(Video.owner_id == user_id).all()
+    query_result = Video.query.filter(Video.owner_id == user_id).all()
     result = []
     for video in query_result:
         result.append(generate_video_obj(video))
@@ -91,7 +87,7 @@ def get_videos_of_user(user_id):
 
 
 def get_available_videos(user_id):
-    query_result = session.query(Video).filter(Video.owner_id == user_id).all()
+    query_result = Video.query.filter(Video.owner_id == user_id).all()
     result = []
     for video in query_result:
         obj = {
@@ -103,7 +99,7 @@ def get_available_videos(user_id):
 
 
 def get_available_evaluation_videos(user_id):
-    query_result = session.query(Video).filter(Video.owner_id == user_id).all()
+    query_result = Video.query.filter(Video.owner_id == user_id).all()
     result = []
     for video in query_result:
         labels = get_labels_of_video(video.id)
@@ -124,7 +120,7 @@ def get_available_evaluation_videos(user_id):
 
 
 def get_available_labels():
-    query_result = session.query(Label).all()
+    query_result = Label.query.all()
     result = []
     for label in query_result:
         video_name = label.video.slug
@@ -198,7 +194,7 @@ def get_evaluations_of_classifier(classifier):
 
 
 def get_classifiers_of_user(user_id):
-    query_result = session.query(Classifier).filter(Classifier.owner_id == user_id).all()
+    query_result = Classifier.query.filter(Classifier.owner_id == user_id).all()
     result = []
     for classifier in query_result:
         videos, labels = get_videos_labels_of_classifier(classifier)

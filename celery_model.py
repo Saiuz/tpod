@@ -1,15 +1,17 @@
-from db_util import Base
-from sqlalchemy import Column, Integer, Float, String, Boolean, DateTime, BigInteger
+from extensions import db
+from database import Column, Integer, Float, String, Boolean
+from database import Model, CRUDMixin, ForeignKey, Table
+from database import relationship, backref
 
 
-class TaskStatusRecord(Base):
+class TaskStatusRecord(Model, CRUDMixin):
     __tablename__   = "task_status_records"
 
     id              = Column(Integer, primary_key = True)
     task_id  = Column(String(250))
     classifier_id  = Column(String(250))
 
-    update_time  = Column(DateTime())
+    update_time  = Column(db.DateTime())
     body = Column(String(5000))
 
     '''

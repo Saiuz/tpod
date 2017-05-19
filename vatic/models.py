@@ -5,22 +5,21 @@ import api
 import numpy as np
 import vision
 from PIL import Image
-from sqlalchemy import Column, Integer, Float, String, Boolean
-from sqlalchemy import ForeignKey, Table, PickleType
-from sqlalchemy.orm import relationship, backref
+from database import Column, Integer, Float, String, Boolean
+from database import Model, CRUDMixin, ForeignKey, Table
+from database import relationship, backref
 from vision.track.interpolation import LinearFill
 from meta_table import video_evaluation_association_table
 
-from db_util import Base
 import config
 
 logger = logging.getLogger("vatic.models")
 
-boxes_attributes = Table("boxes2attributes", Base.metadata,
+boxes_attributes = Table("boxes2attributes", 
     Column("box_id", Integer, ForeignKey("boxes.id")),
     Column("attribute_id", Integer, ForeignKey("attributes.id")))
 
-class Video(Base):
+class Video(Model, CRUDMixin):
     __tablename__   = "videos"
 
     id              = Column(Integer, primary_key = True)
@@ -109,7 +108,7 @@ class Video(Base):
                 nextseg = seg
         return prevseg, nextseg
 
-class Label(Base):
+class Label(Model, CRUDMixin):
     __tablename__ = "labels"
 
     id = Column(Integer, primary_key = True)
@@ -118,7 +117,7 @@ class Label(Base):
     video = relationship(Video, backref = backref("labels",
                                                   cascade = "all,delete"))
 
-class Attribute(Base):
+class Attribute(Model, CRUDMixin):
     __tablename__ = "attributes"
 
     id = Column(Integer, primary_key = True)
@@ -130,7 +129,7 @@ class Attribute(Base):
     def __str__(self):
         return self.text
 
-class Segment(Base):
+class Segment(Model, CRUDMixin):
     __tablename__ = "segments"
 
     id = Column(Integer, primary_key = True)
@@ -155,7 +154,7 @@ class Segment(Base):
             cost += job.cost
         return cost
 
-class Job(Base):
+class Job(Model, CRUDMixin):
     __tablename__ = "jobs"
     __mapper_args__ = {"polymorphic_identity": "jobs"}
 
@@ -257,7 +256,7 @@ class Job(Base):
     def __iter__(self):
         return self.paths
 
-class Path(Base):
+class Path(Model, CRUDMixin):
     __tablename__ = "paths"
     
     id = Column(Integer, primary_key = True)
@@ -332,7 +331,7 @@ class Path(Base):
     def __repr__(self):
         return "<Path {0}>".format(self.id)
 
-class AttributeAnnotation(Base):
+class AttributeAnnotation(Model, CRUDMixin):
     __tablename__ = "attribute_annotations"
 
     id = Column(Integer, primary_key = True)
@@ -354,7 +353,7 @@ class AttributeAnnotation(Base):
                                                            self.frame,
                                                            self.value)
 
-class Box(Base):
+class Box(Model, CRUDMixin):
     __tablename__ = "boxes"
 
     id = Column(Integer, primary_key = True)

@@ -3,8 +3,6 @@ from flask_login import LoginManager, login_required, login_user, logout_user, c
 from flask import Flask, request, render_template, session, redirect, url_for, flash, send_from_directory, send_file, g, \
     abort, Response
 from flask import jsonify
-import db_util
-from db_util import session
 import db_helper
 from forms import *
 import response_util
@@ -116,10 +114,9 @@ def delete_classifier():
 def delete_evaluation():
     form = DeleteEvaluationForm(request.form)
     if form.validate():
-        evaluation = session.query(EvaluationSet).filter(EvaluationSet.id == form.evaluation_id.data).first()
-        session.delete(evaluation)
-        session.commit()
-        session.close()
+        evaluation = EvaluationSet.query.filter(EvaluationSet.id ==
+                                                 form.evaluation_id.data).first()
+        evaluation.delete()
         return redirect(request.referrer)
     return response_util.json_error_response(msg=str(form.errors))
 
@@ -172,11 +169,9 @@ def create_iterative_classifier():
         # very original (that from the base classifier), thus the labels list should also be organized in
         # that order
         base_classifier_id = form.base_classifier_id.data
-        classifier = session.query(Classifier).filter(Classifier.id == base_classifier_id).first()
+        classifier = Classifier.query.filter(Classifier.id == base_classifier_id).first()
         if not classifier:
-            session.close()
             return response_util.json_error_response(msg='base classifier not exist')
-        session.close()
         epoch = form.epoch.data
         video_list = form.video_list.data
         video_list = video_list.split(',')
@@ -284,11 +279,9 @@ def create_evaluation():
         if not os.path.exists(config.EVALUATION_PATH):
             os.makedirs(config.EVALUATION_PATH)
         classifier_id = form.classifier_id.data
-        classifier = session.query(Classifier).filter(Classifier.id == classifier_id).first()
+        classifier = Classifier.query.filter(Classifier.id == classifier_id).first()
         if not classifier:
-            session.close()
             return response_util.json_error_response(msg='classifier not exist')
-        session.close()
         name = form.name.data
         video_list = form.video_list.data
         video_list = video_list.split(',')
@@ -305,11 +298,9 @@ def push_classifier():
     form = PushClassifierForm(request.form)
     if form.validate():
         classifier_id = form.classifier_id.data
-        classifier = session.query(Classifier).filter(Classifier.id == classifier_id).first()
+        classifier = Classifier.query.filter(Classifier.id == classifier_id).first()
         if not classifier:
-            session.close()
             return response_util.json_error_response(msg='classifier not exist')
-        session.close()
         push_tag_name = 'tpod-image-' + classifier.name + '-' + str(random.getrandbits(32))
         return controller.push_classifier(classifier_id, push_tag_name)
 
