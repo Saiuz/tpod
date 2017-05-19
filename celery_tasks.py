@@ -190,9 +190,11 @@ def train_task(self, base_image_name, result_image_name, dataset_path, classifie
     docker_name = result_image_name
 
     docker_data_volume = str(dataset_path) + ':/dataset'
-    proc = subprocess.Popen(['nvidia-docker', 'run', '-v', docker_data_volume, '--name', docker_name,
+    cmd_l = ['nvidia-docker', 'run', '-v', docker_data_volume, '--name', docker_name,
                              base_image_name, '/usr/bin/python', 'tools/tpod_train_net.py', '--weights', str(weights),
-                             '--output_dir', '.', '--iter', str(epoch), '--train_set_name', str(train_set_name)])
+                             '--output_dir', '.', '--iter', str(epoch), '--train_set_name', str(train_set_name)]
+    print "issue command: {}".format(' '.join(cmd_l))
+    proc = subprocess.Popen(cmd_l)
     # bind the docker api
     client = docker.from_env()
 

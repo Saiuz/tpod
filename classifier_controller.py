@@ -78,7 +78,7 @@ def create_training_classifier(current_user, classifier_name, epoch, video_list,
     classifier.training_start_time = int(time.time() * 1000)
     train_set_name = os.path.splitext(ntpath.basename(str(image_list_file_path)))[0]
 
-    base_image_name = 'faster-rcnn-primitive'
+    base_image_name = config.CONTAINER_BASE_IMAGE_URL
 
     result_image_name = util.get_classifier_image_name(classifier_name, classifier_id)
 

@@ -17,6 +17,7 @@ IMG_PATH = 'public/img/'
 NETWORK_TYPE_FASTER_RCNN = 'faster_rcnn'
 TASK_TYPE_TRAIN = 'train'
 TASK_TYPE_TEST = 'test'
+CONTAINER_BASE_IMAGE_URL = 'registry.cmusatyalab.org/junjuew/container-registry:faster-rcnn-primitive'
 
 import multiprocessing
 processes = multiprocessing.cpu_count()
