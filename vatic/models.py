@@ -1,6 +1,6 @@
 import logging
 import os
-import api
+#import api
 
 import numpy as np
 import vision
@@ -192,14 +192,15 @@ class Job(Model, CRUDMixin):
         #     countrycode = self.group.countrycode,
         #     page = self.getpage())
 
-        resp = api.server.createhit(
-            title = 'title',
-            description = 'description',
-            amount = None,
-            duration = None,
-            lifetime = None,
-            page = self.getpage())
-        self.hitid = resp.hitid
+#        resp = api.server.createhit(
+#            title = 'title',
+#            description = 'description',
+#            amount = None,
+#            duration = None,
+#            lifetime = None,
+#            page = self.getpage())
+#        self.hitid = resp.hitid
+        self.hitid = 'offline'
         self.published = True
         logger.debug("Published HIT {0}".format(self.hitid))
 
