@@ -1,5 +1,8 @@
 ## TPOD
 
+## To start celery
+* ./runcelery.py -A celery_tasks worker --loglevel=debug
+
 -----------------
 ### Dependencies
 
