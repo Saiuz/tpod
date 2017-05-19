@@ -244,4 +244,4 @@ class SignupForm(FlaskForm):
         rv = FlaskForm.validate(self)
         if not rv:
             return False
-        user = session.query(User).filter_by(username=self.username.data).first()
+        return True
