@@ -60,3 +60,4 @@ wsgilog==0.3.1
 WTForms==2.1
 -e git+https://github.com/junjuew/vatic_tracking.git#egg=tracking
 -e git+https://github.com/junjuew/pyvision.git#egg=pyvision
+-e git+https://github.com/junjuew/turkic.git#egg=turkic
