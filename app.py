@@ -107,7 +107,7 @@ def login():
             user = form.user
             print "login success "
             login_user(user)
-            return response_util.json_success_response()
+            return redirect(url_for('/'))
         else:
             return response_util.json_error_response(msg=str(form.errors))
     else:
