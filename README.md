@@ -69,6 +69,29 @@ Then the label for that frame looks like this
 3. (Under the tpod root folder) python app.py db upgrade
 
 
+## How to export labeled videos and import videos from other platform?
+
+Good question, we support that!
+
+1. Ensure that you are using our tools on either TPOD (through our web interface) or on cloudlet 001 through commandline
+2. Ensure that you have completely labeled the video
+
+Export on TPOD:
+* There is a 'Export Video' button on video management page (on the very right column of that page)
+* You can click on that button, then you will get a zip ball, it contains all images and annotations for that video, and it's in PASCAL format
+
+Import on TPOD:
+* If you are using TPOD or our commandline tool (export.py, will be explained later), you will get a zip ball, just upload that zip ball on the video upload interface, and check the checkbox to indicate that it's a labeled sample 
+* After uploading the labeled zip ball, there should be a labaled video on the web page
+* There are several things to mention about that video. First, it will not be resized, thus it's in the original size as those in your zip ball; 2. there will be no tracking related with each annotation (in TPOD of vatic, there exist a tracking mechanism, which only record critical frames, thus greatly reduce the box records), this might brings in an issue, since each frame contains actual label, the frontend might takes a while to load these labels, then on Vatic labeling page, you will have to wait longer before it's loaded 
+
+Export through commandline
+* On cloudlet001, there is a 'export_label.py' under folder '/home/suanmiao/workspace/tpod_export', you can use that file to export labeled file, the result is the same as that from TPOD
+* First, you have to ensure that the virtual environment (under folder '/home/junjuew/object-detection-web/demo-web/flask') is activated
+* Second, ensure that other python files under my folder ('/home/suanmiao/workspace/tpod_export') is also under you execution dir, thus you can directly copy all files under that folder to your working dir and execute it, it should ensure the correctness
+* There are two parameters 'video' and 'target_folder'. 'video' is the actual video name for the video stored in DB, thus it will depend on the actual implementation, under Junjue's TPOD, the name should be userid_videoname, for example '3_dummy_video_1.mp4', the result will be stored in the target folder, more instructions will be displayed during your execution
+
+
 
 
 

@@ -4,11 +4,12 @@ import os
 import shutil
 from subprocess import call
 import numpy as np
+import tpod_models
 from vatic.cli import dump
 import zipfile
 
 
-DEFAULT_FOLDER = '/home/suanmiao/workspace/tpod_export/tmp/'
+DEFAULT_FOLDER = '/home/suanmiao/workspace/tpod/tmp/'
 
 
 def parse_args():
@@ -48,7 +49,7 @@ def export_zip(video_name, target_folder):
     cmd = [video_name, "-o", target_folder, "--pascal"]
     dump(cmd)
     print 'Creating zip ball ...'
-    zipf = zipfile.ZipFile(target_folder + 'label_export.zip', 'w', zipfile.ZIP_DEFLATED)
+    zipf = zipfile.ZipFile(target_folder + '/label_export.zip', 'w', zipfile.ZIP_DEFLATED)
     zipdir(target_folder, zipf)
     zipf.close()
     print 'The exported file created, it is under the specified folder, and the name is label_export.zip'

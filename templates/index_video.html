@@ -18,7 +18,10 @@
         <tbody>
         {% for video in videos %}
         <tr>
-            <th class="table_center">{{video.name}}</th>
+            <th class="table_center">
+                {{video.name}}
+
+            </th>
             <th>
                 <form action="../label/add" method="POST" class="form-inline add_label_form">
                     <input hidden name="video_id" value="{{video.id}}">
@@ -73,7 +76,16 @@
                     <button class="btn btn-danger" type="submit">Delete Video</button>
                 </form>
             </th>
-            <th class="table_center">Download Video</th>
+            <th class="table_center table_download">
+                Export the Labeled Video
+                (this will be in pascal format, you will receive a zip ball containing both images (under JPEGImages folder) and annotations (under Annotations folder))
+
+                <form class="item_export_video" action="export" method="get" target="_blank">
+                    <input hidden name="video_id" value="{{video.id}}">
+                    <button class="btn" type="submit">Export Video</button>
+                </form>
+
+            </th>
         </tr>
         {% endfor%}
         </tbody>
@@ -91,7 +103,8 @@
             <input id="file_upload" type="file" name="file" data-url="upload" multiple class="form-control">
         </div>
         <div class="checkbox form-group">
-            <label><input type="checkbox" name="labeled" class="form-control" value="" id="video_labeled">This is a labeled sample</label>
+            <label><input type="checkbox" name="labeled" class="form-control" value="" id="video_labeled">This is a
+                labeled sample</label>
             <p>If true, it should be in pascal label format and organized as a zip ball</p>
         </div>
     </form>

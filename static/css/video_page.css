@@ -84,3 +84,6 @@ h5 {
 .item_label_headline {
     display: inline;
 }
+.table_download{
+    width: 200px;
+}

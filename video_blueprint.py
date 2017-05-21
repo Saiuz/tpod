@@ -13,9 +13,11 @@ import m_logger
 import db_helper
 import zipfile
 import shutil
-from forms import DeleteVideoForm
+from forms import DeleteVideoForm, ExportVideoForm
 import response_util
 import import_label
+import export_label
+from flask import send_file
 
 
 video_page = Blueprint('video_page', __name__, url_prefix='/video', template_folder='templates',
@@ -148,10 +150,18 @@ def add_labeled_zip(video_name, zip_file_path):
 @video_page.route("/export", methods=["GET"])
 @login_required
 def export():
-    video_name = 'test_7'
-    zip_file_path = 'label_export.zip'
-    add_labeled_zip(video_name, zip_file_path)
-    return 'success'
+    if request.args.get('video_id', None):
+        video_id = request.args.get('video_id')
+        video = Video.query.filter(Video.id == video_id).first()
+        if video is None:
+            return 'Video not exist'
+
+        video_name = video.slug
+        target_folder = 'tmp'
+        export_label.export_zip(video_name, target_folder)
+        target_file_path = 'tmp/label_export.zip'
+        return send_file(target_file_path)
+    return 'Please specify video_id'
 
 
 

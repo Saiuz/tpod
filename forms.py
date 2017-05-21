@@ -126,6 +126,24 @@ class CreateClassifierForm(FlaskForm):
         return True
 
 
+class ExportVideoForm(FlaskForm):
+    video_id = StringField('video_id', validators=[DataRequired()])
+
+    def __init__(self, *args, **kwargs):
+        kwargs['csrf_enabled'] = False
+        FlaskForm.__init__(self, *args, **kwargs)
+
+    def validate(self):
+        rv = FlaskForm.validate(self)
+        if not rv:
+            return False
+        video = Video.query.filter(Video.id == self.video_id.data).first()
+        if not video:
+            self.video_id.errors.append('video not exist')
+            return False
+        return True
+
+
 class DeleteVideoForm(FlaskForm):
     video_id = StringField('video_id', validators=[DataRequired()])
 

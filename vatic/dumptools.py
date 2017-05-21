@@ -6,7 +6,7 @@ import velocity
 import numpy as np
 import merge
 from xml.etree import ElementTree
-from models import Path
+from models import Path, Video
 import pdb
 
 """
@@ -56,7 +56,6 @@ def getdata(video, domerge=True, mergemethod=None, mergethreshold=0.5,
             for job in segment.jobs:
                 if not job.useful:
                     continue
-                worker = job.workerid
                 for path in job.paths:
                     tracklet = Tracklet(
                         path.label.text,
@@ -64,13 +63,10 @@ def getdata(video, domerge=True, mergemethod=None, mergethreshold=0.5,
                         path.userid, 
                         [path],
                         path.getboxes(),
-                        [worker],
+                        [],
                         {}
                     )
                     response.append(tracklet)
-
-    if workers:
-        response = [x for x in response if set(x.workers) & workers]
 
     interpolated = []
     for track in response:
