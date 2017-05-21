@@ -7,6 +7,7 @@ from vatic import merge
 import velocity
 import time
 import util
+import xml.etree.ElementTree as ET
 
 from extensions import db
 
@@ -475,3 +476,255 @@ def dump_image_and_label_files(video_ids, label_name_array, remove_none_frame=Fa
 
     session.commit()
     return image_file_path, label_file_path, label_name_path
+
+
+def extract_labeled_file(valid_sample_list, path_output):
+    if not os.path.isdir(path_output):
+        os.makedirs(path_output)
+
+    for i, item in enumerate(valid_sample_list):
+        img_path = Video.getframepath(i, path_output)
+        origin_img_path = item[1]
+        image = cv2.imread(origin_img_path)
+        if image is None:
+            continue
+        if not os.path.isdir(os.path.dirname(img_path)):
+            os.makedirs(os.path.dirname(img_path))
+        # no resize for labeled image
+        cv2.imwrite(img_path, image)
+
+
+def read_pascal_label(xml_path):
+    ret = {}
+    tree = ET.parse(xml_path)
+    root = tree.getroot()
+    size = root.find("size")
+    height = float(size.find("height").text)
+    width = float(size.find("width").text)
+
+    labels = {}
+    for label in root.findall('object'):
+        object_name = label.find("name").text
+        box = label.find("bndbox")
+        xmax = float(box.find("xmax").text)
+        xmin = float(box.find("xmin").text)
+        ymax = float(box.find("ymax").text)
+        ymin = float(box.find("ymin").text)
+        occlude = False
+        temp = box.find("occluded")
+        if temp is not None:
+            temp = int(temp.text)
+            if temp != 0:
+                occlude = True
+        item = [occlude, xmax, xmin, ymax, ymin]
+        if object_name not in labels:
+            labels[object_name] = []
+        labels[object_name].append(item)
+    ret['labels'] = labels
+    ret['height'] = height
+    ret['width'] = width
+    return ret
+
+
+def load_labeled_sample(video_name, valid_sample_list, video_path_output, orig_file_path, user_id, segment_length=300):
+    # video_name = slug
+    # video_path_output = location
+    first_frame_path = Video.getframepath(0, video_path_output)
+    first_frame = image_exist(first_frame_path)
+    if first_frame is None:
+        return False
+    width = first_frame.shape[1]
+    height = first_frame.shape[0]
+
+    # load label for all frames
+    label_list = []
+    labels = []
+    for i, item in enumerate(valid_sample_list):
+        origin_label_path = item[2]
+        frame_label = read_pascal_label(origin_label_path)
+        label_list.append(frame_label)
+        for label_name, class_labels in frame_label['labels'].iteritems():
+            if label_name not in labels:
+                labels.append(label_name)
+
+    # search for last frame
+    toplevel = max(int(x)
+                   for x in os.listdir(video_path_output))
+    secondlevel = max(int(x)
+                      for x in os.listdir("{0}/{1}".format(video_path_output, toplevel)))
+    maxframes = max(int(os.path.splitext(x)[0])
+                    for x in os.listdir("{0}/{1}/{2}"
+                                        .format(video_path_output, toplevel, secondlevel))) + 1
+
+    print "Found {0} frames.".format(maxframes)
+    last_frame_path = Video.getframepath(maxframes - 1, video_path_output)
+    last_frame = image_exist(last_frame_path)
+    if last_frame is None:
+        return False
+    query = session.query(Video).filter(Video.slug == video_name)
+    if query.count() > 0:
+        print "Video {0} already exists!".format(video_name)
+        print "updating labels for {0}".format(video_name)
+        # j: add in update label function
+        video = session.query(Video).filter(Video.slug == video_name).first()
+        # check if such label has any paths associated with it
+        for label in video.labels:
+            if not session.query(Path).filter(Path.labelid == label.id).count():
+                print 'No path associated. deleted label {} {}'.format(label.id, label.text)
+                session.delete(label)
+            else:
+                print 'Path associated exists. keep label {} {}'.format(label.id, label.text)
+        existing_labels = [label.text for label in video.labels]
+        labelcache = {}
+        attributecache = {}
+        lastlabel = None
+        for labeltext in labels:
+            if labeltext[0] == "~":
+                if lastlabel is None:
+                    print "Cannot assign an attribute without a label!"
+                    session.close()
+                    return
+                labeltext = labeltext[1:]
+                attribute = Attribute(text=labeltext)
+                session.add(attribute)
+                lastlabel.attributes.append(attribute)
+                attributecache[labeltext] = attribute
+            else:
+                if labeltext in existing_labels:
+                    print 'label: {} already in video'.format(label)
+                    continue
+                label = Label(text=labeltext)
+                print 'add label: {}'.format(label)
+                session.add(label)
+                video.labels.append(label)
+                labelcache[labeltext] = label
+                lastlabel = label
+        session.commit()
+        return
+    homographydir = os.path.abspath(os.path.join("homographies", video_name))
+    if not os.path.isdir(homographydir):
+        os.makedirs(homographydir)
+    np.save(os.path.join(homographydir, "homography.npy"), np.identity(3))
+
+    current_user = session.query(User).filter(User.id == user_id).first()
+
+    # create video
+    video = Video(slug=video_name,
+                  location=os.path.realpath(video_path_output),
+                  width=width,
+                  height=height,
+                  totalframes=maxframes,
+                  skip=0,
+                  perobjectbonus=0,
+                  completionbonus=0,
+                  trainwith=None,
+                  isfortraining=False,
+                  blowradius=0,
+                  homographylocation=homographydir,
+                  pointmode=False,
+                  orig_file_path=orig_file_path,
+                  extract_path=video_path_output,
+                  owner_id=user_id)
+    session.add(video)
+    current_user.videos.append(video)
+
+    print "Binding labels and attributes..."
+
+    # create labels and attributes
+    labelcache = {}
+    attributecache = {}
+    lastlabel = None
+    for labeltext in labels:
+        if labeltext[0] == "~":
+            if lastlabel is None:
+                print "Cannot assign an attribute without a label!"
+                session.commit()
+                return
+            labeltext = labeltext[1:]
+            attribute = Attribute(text=labeltext)
+            session.add(attribute)
+            lastlabel.attributes.append(attribute)
+            attributecache[labeltext] = attribute
+        else:
+            label = Label(text=labeltext)
+            print 'add label: {}'.format(label)
+            session.add(label)
+            video.labels.append(label)
+            labelcache[labeltext] = label
+            lastlabel = label
+
+    print "Creating symbolic link..."
+    symlink = "public/frames/{0}".format(video.slug)
+
+    try:
+        os.remove(symlink)
+    except:
+        pass
+    if not os.path.exists('public/frames'):
+        os.makedirs('public/frames')
+    os.symlink(video.location, symlink)
+
+    print "Creating segments..."
+    # create shots and jobs
+    startframe = 0
+    stopframe = video.totalframes - 1
+    for start in range(startframe, stopframe, segment_length):
+        stop = min(start + segment_length + 1,
+                   stopframe)
+        segment = Segment(start=start,
+                          stop=stop,
+                          video=video)
+        job = Job(segment=segment)
+        session.add(segment)
+        session.add(job)
+
+        # traverse through the segment to add path and boxes
+        path_array = {}
+        for i in range(start, stop + 1):
+            frame_label = label_list[i]
+            for label_name, class_labels in frame_label['labels'].iteritems():
+                # traverse through all boxes/labels under that class
+                if label_name not in path_array:
+                    path_array[label_name] = []
+                while len(path_array[label_name]) < len(class_labels):
+                    path = Path()
+                    path.label = labelcache[label_name]
+                    path.done = 0
+                    path.userid = int(user_id)
+                    path.job = job
+                    path.jobid = job.id
+                    session.add(path)
+                    session.commit()
+                    path_array[label_name].append(path)
+                for j, label in enumerate(class_labels):
+                    path = path_array[label_name][j]
+                    xtl = int(label[2])
+                    ytl = int(label[4])
+                    xbr = int(label[1])
+                    ybr = int(label[3])
+                    box = Box(path=path)
+                    box.pathid = path.id
+                    box.xtl = xtl
+                    box.ytl = ytl
+                    box.xbr = xbr
+                    box.ybr = ybr
+                    box.occluded = 0
+                    box.outside = 0
+                    box.generated = 0
+                    box.frame = i
+                    session.add(box)
+                # for these boxes that disappear in this frame, add a 'out of frame'
+                for j in range(len(class_labels), len(path_array[label_name])):
+                    path = path_array[label_name][j]
+                    box = Box(path=path)
+                    box.xtl = 0
+                    box.ytl = 0
+                    box.xbr = 1
+                    box.ybr = 1
+                    box.occluded = 0
+                    box.outside = 1
+                    box.generated = 0
+                    box.frame = i
+                    session.add(box)
+    session.commit()
+
