@@ -214,7 +214,7 @@ def create_test_classifier(current_user, base_classifier_id, time_remains=1000):
     return host_port
 
 
-def create_short_running_test_classifier(base_classifier_id, time_remains=10):
+def create_short_running_test_classifier(base_classifier_id, time_remains=100):
     base_classifier = Classifier.query.filter(Classifier.id == base_classifier_id).first()
     if not base_classifier:
         return None

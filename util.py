@@ -151,3 +151,6 @@ def get_classifier_image_name(classifier_name, classifier_id):
     result_image_name = str(classifier_name) + '-id-' + str(classifier_id)
     return result_image_name
 
+
+def safe_docker_image_name(name):
+    return str(name).lower()

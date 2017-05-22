@@ -134,7 +134,7 @@ def create_training_classifier():
                 msg='No enough GPU memory, it requires %s MB, but there is only %s MB' % (
                     str(parameters.MINIMUM_TRAIN_GPU_MEMORY), str(current_gpu_memory)))
 
-        classifier_name = form.classifier_name.data
+        classifier_name = util.safe_docker_image_name(form.classifier_name.data)
         epoch = form.epoch.data
         network_type = form.network_type.data
         video_list = form.video_list.data
@@ -175,8 +175,8 @@ def create_iterative_classifier():
         epoch = form.epoch.data
         video_list = form.video_list.data
         video_list = video_list.split(',')
-        controller.create_iterative_training_classifier(current_user, base_classifier_id, form.classifier_name.data,
-                                                        epoch, video_list)
+        classifier_name = util.safe_docker_image_name(form.Classifier_name.data)
+        controller.create_iterative_training_classifier(current_user, base_classifier_id, classifier_name, epoch, video_list)
 
         return redirect(request.referrer)
     return response_util.json_error_response(msg=str(form.errors))
@@ -211,7 +211,8 @@ def create_test_classifier():
 
         base_classifier_id = form.base_classifier_id.data
         long_running = form.long_running.data
-        print 'parameter: base classifier %s , long running: %s ' % (str(base_classifier_id), str(long_running))
+        print 'parameter: base classifier %s , long running: %s ' % (str(base_classifier_id
+), str(long_running))
         if long_running == 'true':
             time_remains = 1000
             if form.time_remains.data:
@@ -221,7 +222,7 @@ def create_test_classifier():
             else:
                 return redirect(request.referrer)
         else:
-            host_port = controller.create_short_running_test_classifier(base_classifier_id, 10)
+            host_port = controller.create_short_running_test_classifier(base_classifier_id, config.SHORT_RUNNING_CONTAINER_TIME)
             if not host_port:
                 return response_util.json_error_response(msg='The base classifier not exist')
             else:
