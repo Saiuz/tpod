@@ -13,6 +13,7 @@ NETWORK_TYPE_FASTER_RCNN = 'faster_rcnn'
 TASK_TYPE_TRAIN = 'train'
 TASK_TYPE_TEST = 'test'
 CONTAINER_BASE_IMAGE_URL = 'registry.cmusatyalab.org/junjuew/container-registry:faster-rcnn-primitive'
+SHORT_RUNNING_CONTAINER_TIME = 100 # in s
 
 import os
 CONTAINER_REGISTRY_URL = os.environ.get('CONTAINER_REGISTRY_URL', 'registry.cmusatyalab.org/junjuew/container-registry')

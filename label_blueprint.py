@@ -20,7 +20,7 @@ def delete_label():
     if form.validate():
         label = Label.query.filter(Label.id == form.label_id.data).first()
         video = Video.query.filter(Video.id == label.videoid).first()
-        sesssion = db.session
+        session = db.session
         video.labels.remove(label)
         label.delete()
         session.commit()
