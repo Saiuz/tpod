@@ -2,7 +2,6 @@
 upload/*
 .idea
 extract/*
-config.py
 public/frames/*
 public/img/*
 homographies/*
