@@ -272,5 +272,5 @@ def push_classifier(classifier_id, push_tag_name):
     ret = result.get()
     if not ret:
         return 'Error in pushing the image, see the celery log for detail'
-    return 'The image has been pushed, the name for that image is %s ' % str(push_tag_name)
+    return 'The image has been pushed to registery. \n You can pull the image with command: docker pull {}:{}'.format(config.CONTAINER_REGISTRY_URL, str(push_tag_name))
 

@@ -3,9 +3,7 @@ from vatic.vatic import vatic_page
 from flask_login import LoginManager, login_required, login_user, logout_user, current_user
 from tpod_models import User, Video, Classifier
 from forms import *
-import config
 from flask_superadmin import Admin, model, AdminIndexView
-from flask_superadmin.contrib import sqlamodel
 from flask import jsonify
 from video_blueprint import video_page
 from label_blueprint import label_page
@@ -30,7 +28,6 @@ db_password = os.environ.get('DB_PASSWORD', 'none')
 app.config['SQLALCHEMY_DATABASE_URI'] = "mysql://{}:{}@localhost/{}".format(db_user,
                                                                             db_password,
                                                                             db_name)
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test.db'
 
 db.init_app(app)
 login_manager.init_app(app)
@@ -54,21 +51,15 @@ def load_user(id):
     return ret
 
 
-# Create customized model view class
-class MyModelView(sqlamodel.ModelView):
-    def is_accessible(self):
-        return current_user.is_authenticated
-
-
 # Create customized index view class
 class MyAdminIndexView(AdminIndexView):
     def is_accessible(self):
         return current_user.is_authenticated
 
+
 # initialize super admin
 admin = Admin(app, "TPOD Models", index_view=MyAdminIndexView())
-admin.add_view(MyModelView(User, db.session))
-
+admin.register(User, session=db.session)
 admin.register(Video, session=db.session)
 admin.register(Classifier, session=db.session)
 
@@ -116,20 +107,5 @@ def signup():
     return redirect(url_for('login'))
 
 
-# # add error handler, rollback the session when necessary
-# @app.errorhandler(Exception)
-# def internal_server_error(error):
-#     session.rollback()
-#     return app.handle_exception(error)
-
-
 if __name__ == '__main__':
     manager.run()
-
-
-
-
-
-
-
-

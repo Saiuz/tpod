@@ -13,10 +13,10 @@ import docker
 import re
 import json
 import random
-import config
 import requests
 
 from extensions import db, tpod_celery
+import config
 
 logger = get_task_logger('tpod')
 
@@ -412,10 +412,9 @@ def push_image_task(image_name, push_tag_name):
     print 'image name %s ' % str(image_name)
     try:
         image = client.images.get(str(image_name))
-        tag_name = 'registry.cmusatyalab.org/junjuew/container-registry:%s' % str(push_tag_name)
         print 'tag name %s ' % str(push_tag_name)
-        image.tag(tag_name)
-        ret = client.images.push(tag_name)
+        image.tag(config.CONTAINER_REGISTRY_URL, tag=push_tag_name)
+        ret = client.images.push(config.CONTAINER_REGISTRY_URL, tag=push_tag_name)
         print 'end pushing image'
         print ret
         return ret
