@@ -92,20 +92,6 @@ Export through commandline
 * There are two parameters 'video' and 'target_folder'. 'video' is the actual video name for the video stored in DB, thus it will depend on the actual implementation, under Junjue's TPOD, the name should be userid_videoname, for example '3_dummy_video_1.mp4', the result will be stored in the target folder, more instructions will be displayed during your execution
 
 
+### Usage of generated TPOD container image
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    nvidia-docker run -it -p 0.0.0.0:8000:8000 --rm --name <container-name> <container-image> /bin/bash run_server.sh
