@@ -6,6 +6,7 @@ import re
 import pika
 import socket
 import requests
+import time
 
 
 def get_file_size(file_name):
@@ -121,14 +122,35 @@ def get_available_port():
     return port
 
 
+def get_request_result_multiple_trials(url, payload, files, file_name, trials=5, interval=5):
+    attempt = 0
+    success = False
+    while attempt < trials:
+        try:
+            get_request_result(url, payload, files, file_name)
+            success = True
+            break
+        except requests.exceptions.ConnectionError as e:
+            print 'connection error for POST request to {}'.format(url)
+            # seek to 0 for all files
+            map(lambda (k,v): v.seek(0), files.iteritems())
+            time.sleep(interval)
+        attempt += 1
+    print 'successfully get POST message response after {} trials? {}'.format(trials, success)
+    return success
+    
+
 def get_request_result(url, payload, files, file_name):
+    print 'payload: {}'.format(payload)
+    print 'files: {}'.format(files)
+    print 'file_name: {}'.format(file_name)
     r = requests.post(url, data=payload, files=files)
     f = open(file_name, 'wb')
     chunk_size = 1000
     for chunk in r.iter_content(chunk_size=chunk_size):
         f.write(chunk)
     f.close()
-    print 'write file finished'
+    print 'successfully get POST result from {}'.format(url)
 
 
 def get_unique_label_name(label_array):

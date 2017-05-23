@@ -251,8 +251,9 @@ def create_test_classifier():
                     v.save(temp_img_path)
                     files[k] = open(temp_img_path, 'rb')
                     print 'saved image ' + str(temp_img_path)
-
-                util.get_request_result(url, payload, files, ret_file_path)
+                    
+                # need to try to send requests multiple time, cuz container start up time is not deterministic
+                util.get_request_result_multiple_trials(url, payload, files, ret_file_path)
                 return send_file(ret_file_path)
     return response_util.json_error_response(msg=str(form.errors))
 
