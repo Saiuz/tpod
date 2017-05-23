@@ -176,6 +176,13 @@
                         .click(function () {
                             var permitted = true;
 
+                            // check video name 
+                            var video_name = $('#video_name').val()
+                            if (!video_name){
+                                permitted=false;
+                                alert('Please Enter a valid file name')
+                            }
+
                             //check file type, only mp4, avi, zip are allowed
                             var uploadFile = data.files[0];
                             if (!(/\.(zip|mp4|avi|m4v)$/i).test(uploadFile.name)) {
