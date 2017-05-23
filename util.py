@@ -154,3 +154,8 @@ def get_classifier_image_name(classifier_name, classifier_id):
 
 def safe_docker_image_name(name):
     return str(name).lower()
+
+
+def remove_file_if_exist(fpath):
+    if os.path.exists(fpath) and os.path.isfile(fpath):
+        os.remove(fpath)

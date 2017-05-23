@@ -13,6 +13,9 @@ from sqlalchemy import desc
 from vatic import turkic_replacement
 import docker
 from extensions import db
+import m_logger
+
+logger = m_logger.get_logger('CLASSIFIER_CONTROLLER')
 
 # the basic structure: class is separated by '.' label is separated by ';' coordination is separated by ','
 def generate_frame_label(frame_labels):
@@ -42,6 +45,17 @@ def delete_classifier(classifier_id):
     3. container, image
     '''
     classifier = Classifier.query.filter(Classifier.id == classifier_id).first()
+    util.remove_file_if_exist(classifier.training_image_list_file_path)
+    util.remove_file_if_exist(classifier.training_label_list_file_path)
+    util.remove_file_if_exist(classifier.training_label_name_file_path)
+    container_image_name = util.get_classifier_image_name(classifier.name,
+                                                          classifier.id)
+    client = docker.from_env()
+    try:
+        client.images.remove(container_image_name, force=True)
+    except docker.errors.ImageNotFound as e:
+        logger.info('contianer image {} not found'.format(container_image_name))
+        logger.info(e)
     classifier.delete()
 
 
