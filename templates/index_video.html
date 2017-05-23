@@ -93,14 +93,14 @@
 
 
     <h4> Upload Video (mp4/avi/m4v) or Zipped Image Sequence (zip):</h4>
-    <form id="fileupload" action="upload" method="POST" enctype="multipart/form-data" class="form-inline">
+    <form id="fileupload_form" action="upload" method="POST" enctype="multipart/form-data" class="form-inline">
         <div class="form-group">
             <label for="video_name">Video Name:</label>
             <input id="video_name" type="text" name="video_name" class="form-control"><br>
         </div>
         <div class="form-group">
-            <label for="file_upload">Choose the file:</label>
-            <input id="file_upload" type="file" name="file" data-url="upload" multiple class="form-control">
+            <label for="fileupload">Choose the file:</label>
+            <input id="fileupload" type="file" name="file" data-url="upload" multiple class="form-control">
         </div>
         <div class="checkbox form-group">
             <label><input type="checkbox" name="labeled" class="form-control" value="" id="video_labeled">This is a
@@ -122,6 +122,7 @@
 <script src="static/js/vendor/jquery.ui.widget.js"></script>
 <script src="static/js/jquery.iframe-transport.js"></script>
 <script src="static/js/jquery.fileupload.js"></script>
+<script src="static/js/sol.js"></script>
 <script>
 
     $(".item_delete_video").submit(function (e) {
@@ -167,7 +168,9 @@
     });
     $(function () {
         $('#fileupload').fileupload({
+            replaceFileInput:false,
             add: function (e, data) {
+                $('#upload').empty()
                 data.context = $('<button class="btn btn-primary"/>').text('Upload')
                         .appendTo($('#upload'))
                         .click(function () {

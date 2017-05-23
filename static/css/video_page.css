@@ -87,3 +87,8 @@ h5 {
 .table_download{
     width: 200px;
 }
+
+.bar {
+    height: 18px;
+    background: green;
+}
