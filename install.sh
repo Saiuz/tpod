@@ -1,7 +1,7 @@
 #!/bin/bash -ex
 
 echo "start installing system wide packages including python, opencv, and mysql"
-sudo apt-get install python-setuptools python-dev python-pip libavcodec-dev libavformat-dev libswscale-dev libjpeg62 libfreetype6 libfreetype6-dev libopencv-dev python-opencv mysql-server-5.5 mysql-client-5.5 libmysqlclient-dev gfortran
+sudo apt-get install python-setuptools python-dev python-pip libavcodec-dev libavformat-dev libswscale-dev libjpeg62 libfreetype6 libfreetype6-dev libopencv-dev python-opencv mysql-server-5.5 mysql-client-5.5 libmysqlclient-dev gfortran rabbitmq-server
 
 echo "start installing requiements into virtualenv env"
 virtualenv --system-site-packages env # use system-site opencv package

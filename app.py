@@ -14,6 +14,9 @@ from flask_sqlalchemy import SQLAlchemy
 import os
 from flask_migrate import MigrateCommand
 from extensions import db, login_manager, migrate, manager
+import m_logger
+
+logger = m_logger.get_logger('LOGIN_PAGE')
 
 app = Flask(__name__, static_url_path='/static', template_folder='/templates')
 app.register_blueprint(vatic_page)
@@ -105,6 +108,19 @@ def signup():
             flash('User successfully registered')
             return Response('Registered')
     return redirect(url_for('login'))
+
+
+@app.before_first_request
+def create_default_user():
+    username = os.environ.get('DEFAULT_USER', 'tpod')
+    password = os.environ.get('DEFAULT_USER_PASSWORD', 'your-super-secret-password')
+    default_user = User.query.filter_by(username=username).first()
+    if not default_user:
+        default_user = User.create(password= password, username=username)
+    else:
+        if default_user.password != password:
+            default_user.update(password= password)
+    logger.debug('default user: {}, pw: {}'.format(default_user.username, default_user.password))
 
 
 if __name__ == '__main__':
