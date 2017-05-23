@@ -69,6 +69,22 @@ def delete_video(video_id):
     return False
 
 
+def constrain_image_resolution(image, max_h, max_w):
+    h, w, _ = image.shape
+    if h <= max_h and w <= max_w:
+        return image
+        
+    hw_ratio = float(h) / float(w)
+    if hw_ratio > float(max_h) / max_w:
+        target_height = max_h
+        target_width = target_height / hw_ratio
+    else:
+        target_width = max_w
+        target_height = target_width * hw_ratio
+    image = cv2.resize(image, (int(target_width), int(target_height)))
+    return image
+
+
 def extract(path_video, path_output):
     if not os.path.isdir(path_output):
         os.makedirs(path_output)
@@ -81,18 +97,12 @@ def extract(path_video, path_output):
         img_path = Video.getframepath(count, path_output)
         if not os.path.isdir(os.path.dirname(img_path)):
             os.makedirs(os.path.dirname(img_path))
-        # resize the image to 720 x 480
-        hw_ratio = float(image.shape[0]) / float(image.shape[1])
-        if hw_ratio > 480.0 / 720.0:
-            target_height = 480
-            target_width = target_height / hw_ratio
-        else:
-            target_width = 720
-            target_height = target_width * hw_ratio
-        image = cv2.resize(image, (int(target_width), int(target_height)))
+        image = constrain_image_resolution(image, config.IMAGE_MAX_HEIGHT,
+                                           config.IMAGE_MAX_WIDTH)
         cv2.imwrite(img_path, image)
         success, image = cap.read()
         count += 1
+    cap.release()
     return True
 
 
@@ -108,15 +118,8 @@ def extract_image_sequences(image_path_list, path_output):
             continue
         if not os.path.isdir(os.path.dirname(img_path)):
             os.makedirs(os.path.dirname(img_path))
-        # resize the image to 720 x 480
-        hw_ratio = float(image.shape[0]) / float(image.shape[1])
-        if hw_ratio > 480.0 / 720.0:
-            target_height = 480
-            target_width = target_height / hw_ratio
-        else:
-            target_width = 720
-            target_height = target_width * hw_ratio
-        image = cv2.resize(image, (int(target_width), int(target_height)))
+        image = constrain_image_resolution(image, config.IMAGE_MAX_HEIGHT,
+                                           config.IMAGE_MAX_WIDTH)
         cv2.imwrite(img_path, image)
         count += 1
     return True
