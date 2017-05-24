@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 from flask import Blueprint, render_template, abort
 from flask_login import LoginManager, login_required, login_user, logout_user, current_user
 from flask import Flask, request, render_template, session, redirect, url_for, flash, send_from_directory, send_file, g, \
@@ -21,16 +23,10 @@ classifier_page = Blueprint('classifier_page', __name__, url_prefix='/classifier
                             static_url_path='/static', static_folder='static')
 
 
-@classifier_page.route("/list", methods=["GET"])
-@login_required
-def list_classifier():
-    return render_template('index_classifier.html', classifiers=db_helper.get_classifiers_of_user(current_user.id))
-
-
-@classifier_page.route("/available_labels", methods=["POST", "GET"])
-@login_required
-def available_labels():
-    labels = db_helper.get_available_labels()
+def sol_jsonify(labels):
+    '''
+    Convert labels to sol format json
+    '''
     ret = []
     for label in labels:
         obj = {
@@ -41,6 +37,41 @@ def available_labels():
         }
         ret.append(obj)
     return jsonify(ret)
+
+
+def tag_jsonify(labels):
+    label_info = defaultdict(str)
+    for label in labels:
+        # init with label name
+        label_info[label['name']]=label['name']
+    for label in labels:
+        # add in vidoe info
+        label_info[label['name']]+=' ({} frames from video {})'.format(label['labeled_frame'], label['video_name'])
+    return jsonify(label_info)
+
+
+@classifier_page.route("/list", methods=["GET"])
+@login_required
+def list_classifier():
+    return render_template('index_classifier.html', classifiers=db_helper.get_classifiers_of_user(current_user.id))
+
+
+@classifier_page.route("/available_labels", methods=["POST", "GET"])
+@login_required
+def available_labels():
+    labels = db_helper.get_available_labels()
+    return sol_jsonify(labels)
+
+
+@classifier_page.route("/available_labels_for_videos", methods=["POST"])
+@login_required
+def available_labels_for_videos():
+    video_ids = request.get_json()
+    labels = []
+    for video_id in video_ids:
+        labels.extend(db_helper.get_labels_of_video(video_id))
+    return tag_jsonify(labels)
+
 
 
 @classifier_page.route("/get_classifier_status", methods=["POST"])
@@ -139,12 +170,13 @@ def create_training_classifier():
         network_type = form.network_type.data
         video_list = form.video_list.data
         video_list = video_list.split(',')
-        print video_list
+        print 'creating training job'
+        print 'video ids: {}'.format(video_list)
         label_list = form.label_list.data
         label_list = label_list.split(',')
         label_list = util.get_unique_label_name(label_list)
-        print label_list
-
+        print 'labels: {}'.format(label_list)
+        
         controller.create_training_classifier(current_user, classifier_name, epoch, video_list, label_list)
 
         return redirect(request.referrer)

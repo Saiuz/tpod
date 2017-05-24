@@ -30,12 +30,12 @@ h5 {
 }
 
 #video-select {
-    width: 300px;
+    width: 400px;
     margin-top: 40px;
 }
 
-#label-select {
-    width: 400px;
+#label_input {
+    width: 600px;
     margin-top: 40px;
 }
 
@@ -94,4 +94,8 @@ h5 {
 
 .item_evaluation_video{
     padding-left: 10px;
+}
+
+.label {
+    font-size: 100%
 }

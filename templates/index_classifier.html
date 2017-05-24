@@ -1,6 +1,19 @@
 {% extends "base.html" %}
 {% block title %}File Uploader{% endblock %}
 
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="static/css/classifier_page.css">
+<link rel="stylesheet" href="static/css/sol.css">
+<link rel="stylesheet" href="static/css/bootstrap-tagsinput.css">
+<script src="static/js/vendor/jquery.ui.widget.js"></script>
+<script src="static/js/jquery.iframe-transport.js"></script>
+<script src="static/js/jquery.fileupload.js"></script>
+<script src="static/js/sol.js"></script>
+<script src="static/js/bootstrap-tagsinput.js"></script>
+<script src="static/js/typeahead.bundle.min.js"></script>
+{% endblock %}
+
 {% block page_content %}
 <div class="container" id="classifier_container">
 
@@ -215,19 +228,22 @@
             </div>
 
             <div class="form-group form-inline">
-                <label for="param_videos">Choose Videos:</label>
-
+                <label for="param_videos">Videos:</label>
                 <select id="video-select" name="character" multiple="multiple">
                 </select>
                 <input id="param_videos" type="text" name="video_list" hidden>
             </div>
 
-            <div class="form-group form-inline">
-                <label for="param_labels">Choose Labels:</label>
 
+            <div class="form-group">
+                <label for="param_labels">Labels:</label>
+                <input id="label_input" class="form-control form-control-lg" type="text"
+                data-role="tagsinput"/>
+                <input id="param_labels" type="text" name="label_list" hidden>
+<!--
                 <select id="label-select" name="character" multiple="multiple">
                 </select>
-                <input id="param_labels" type="text" name="label_list" hidden>
+-->
             </div>
 
             <div class="form-group form-inline">
@@ -242,20 +258,73 @@
 {% endblock %}
 
 {% block scripts %}
-<link rel="stylesheet" href="static/css/classifier_page.css">
-<link rel="stylesheet" href="static/css/sol.css">
-<script src="static/js/vendor/jquery.ui.widget.js"></script>
-<script src="static/js/jquery.iframe-transport.js"></script>
-<script src="static/js/jquery.fileupload.js"></script>
-<script src="static/js/sol.js"></script>
 <script>
     $(function () {
         $('#video-select').searchableOptionList({
             data: 'available_videos',
             texts: {
                 searchplaceholder: 'Choose videos for the classifier'
-            }
-        });
+            },
+           // register events
+            events: {            
+               onChange: function(sol,changedElements) {
+                  var selected_videos = sol.getSelection();
+                  var video_ids = []
+                  // get all selected video id
+                  for (var i = 0; i < selected_videos.length; i++) {
+                     video_ids[i]=selected_videos[i].value;
+                 }
+                 console.log(video_ids);
+                 // get labels for these video ids
+                 $.ajax({
+                   url: 'available_labels_for_videos',
+                   contentType: "application/json; charset=utf-8",
+                   type: 'POST',
+                   data: JSON.stringify(video_ids),
+                   dataType: 'json',
+                   success: function (resp) {
+                       console.log(resp)
+                       var label_info = resp
+                       var srcs = []
+                       var label_objs = []
+                       for(var label_name in label_info){
+                           if (label_info.hasOwnProperty(label_name)){
+                               var label_str=label_info[label_name];
+                               console.log(label_str)
+                               srcs.push(label_name)
+                               var label_obj=new Object()
+                               label_obj.name=String(label_name)
+                               label_obj.text=String(label_str)
+                               label_objs.push(label_obj)
+                           }
+                       }                       
+                       console.log(srcs)
+                       console.log(label_objs)
+                       //populate the label input
+                       $('#label_input').tagsinput('removeAll');
+                       $('#label_input').tagsinput('destroy');
+                       $('#label_input').tagsinput({
+                           itemValue: "name",
+                           itemText: "text",
+                           tagClass: 'label label-primary big',
+                           typeahead: {
+                               displayKey: 'name',
+                               valueKey: 'name',
+                               source: srcs
+                           },
+                           freeInput: false
+                       });
+                       for (var idx=0; idx<label_objs.length; idx++){
+                           var label_obj = label_objs[idx]
+                           $('#label_input').tagsinput('add', {"name": label_obj.name, "text": label_obj.text});
+                       }
+                   }
+                })
+              },
+          },
+       });
+
+
         $('.iterative_video-select').searchableOptionList({
             data: 'available_videos',
             texts: {
@@ -270,12 +339,12 @@
             }
         });
 
-        $('#label-select').searchableOptionList({
-            data: 'available_labels',
-            texts: {
-                searchplaceholder: 'Choose labels for the classifier'
-            }
-        });
+        // $('#label-select').searchableOptionList({
+        //     data: 'available_labels',
+        //     texts: {
+        //         searchplaceholder: 'Choose labels for the classifier'
+        //     }
+        // });
 
         $('#classifier-type-select').searchableOptionList({
             data: 'available_classifier_types',
@@ -287,7 +356,7 @@
 
     $("#form_create_classifier").submit(function (e) {
         var selected_videos = $('#video-select').searchableOptionList().getSelection();
-        var selected_labels = $('#label-select').searchableOptionList().getSelection();
+        var selected_labels = $("#label_input").tagsinput('items')
         var selected_network = $('#classifier-type-select').searchableOptionList().getSelection();
 
         var videos = "";
@@ -302,9 +371,9 @@
         var labels = "";
         for (var i = 0; i < selected_labels.length; i++) {
             if (i == selected_labels.length - 1) {
-                labels += (selected_labels[i].value);
+                labels += (selected_labels[i].name);
             } else {
-                labels += (selected_labels[i].value + ",");
+                labels += (selected_labels[i].name + ",");
             }
         }
 

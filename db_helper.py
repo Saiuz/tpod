@@ -11,12 +11,18 @@ import matplotlib.pyplot as plt
 
 
 def generate_label_obj(label):
+    video_name = label.video.slug
     obj = {
-        'name': label.text,
+        'video_name': str(video_name),
+        'name': str(label.text),
         'id': label.id,
         'labeled_frame': get_labeled_frames_count(label)
     }
     return obj
+
+
+def generate_label_objs(labels):
+    return map(generate_label_obj, labels)
 
 
 def get_labeled_frames_count(label):
@@ -63,10 +69,7 @@ def get_all_job_urls(video):
 
 def get_labels_of_video(video_id):
     query_result = Label.query.filter(Label.videoid == video_id)
-    result = []
-    for label in query_result:
-        result.append(generate_label_obj(label))
-    return result
+    return generate_label_objs(query_result)
 
 
 def get_video_by_id(video_id):
@@ -121,17 +124,7 @@ def get_available_evaluation_videos(user_id):
 
 def get_available_labels():
     query_result = Label.query.all()
-    result = []
-    for label in query_result:
-        video_name = label.video.slug
-        obj = {
-            'video_name': str(video_name),
-            'name': str(label.text),
-            'id': label.id,
-            'labeled_frame': get_labeled_frames_count(label)
-        }
-        result.append(obj)
-    return result
+    return generate_label_objs(query_result)
 
 
 def get_videos_labels_of_classifier(classifier):
