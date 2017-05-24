@@ -18,6 +18,7 @@ from functools import wraps
 import logging
 import sys
 from extensions import db
+from util import shortcache
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 import config
@@ -408,11 +409,19 @@ def trackforward(id, start, end, tracker, trackid):
     }
 
 
+@vatic_page.route('/frames/<path:path>', methods=['GET'])
+@shortcache
+def no_cache_video_frames(path):
+    if '.' in path:
+        public_dir = 'public/frames'
+        return send_from_directory(public_dir, path)
+    return "Frame not found"
+
+
 @vatic_page.route('/<path:path>', methods=['GET'])
 def public_files(path):
     if '.' in path:
         public_dir = 'public'
-        # public_dir=os.path.join(config.VATIC_URL_PREFIX.replace('/',''),'public')
         return send_from_directory(public_dir, path)
     return "not a static file"
 

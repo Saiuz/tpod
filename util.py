@@ -7,6 +7,10 @@ import pika
 import socket
 import requests
 import time
+from functools import wraps, update_wrapper
+from datetime import datetime
+
+from flask import make_response
 
 import docker
 import m_logger
@@ -209,3 +213,12 @@ def issue_blocking_cmd(cmd):
     logger.debug("stdout: {}".format(stdout))
     logger.debug("stderr: {}".format(stderr))
     return error_code
+
+def shortcache(view):
+    @wraps(view)
+    def no_cache(*args, **kwargs):
+        response = make_response(view(*args, **kwargs))
+        response.headers['Cache-Control'] = 'public, max-age=300'
+        return response
+        
+    return update_wrapper(no_cache, view) 
