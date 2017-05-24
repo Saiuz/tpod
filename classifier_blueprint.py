@@ -19,6 +19,10 @@ from vatic import turkic_replacement
 import parameters
 import util
 
+import m_logger
+
+logger = m_logger.get_logger('CLASSIFIER_BLUEPRINT')
+
 classifier_page = Blueprint('classifier_page', __name__, url_prefix='/classifier', template_folder='templates',
                             static_url_path='/static', static_folder='static')
 
@@ -254,39 +258,19 @@ def create_test_classifier():
             else:
                 return redirect(request.referrer)
         else:
-            host_port = controller.create_short_running_test_classifier(base_classifier_id, config.SHORT_RUNNING_CONTAINER_TIME)
-            if not host_port:
-                return response_util.json_error_response(msg='The base classifier not exist')
-            else:
-                # wait for the container to start
-                time.sleep(5)
-                confidence = 0.61
-                if 'confidence' in request.form:
-                    confidence = str(request.form['confidence'])
-                else:
-                    print 'input confidence %s ' % str(confidence)
-
-                # make the request and send back the file
-                ret_file_path = '/tmp/' + str(random.getrandbits(32)) + ".png"
-                payload = {
-                    'time_remains': 10,
-                    'base_classifier_id': base_classifier_id,
-                    'format': 'img',
-                    'confidence': confidence
-                }
-
-                url = 'http://localhost:' + str(host_port) + "/detect"
-                files = {}
-                print 'get files ' + str(request.files)
-                for k, v in request.files.items():
-                    temp_img_path = '/tmp/' + str(random.getrandbits(32)) + str(v.filename)
-                    v.save(temp_img_path)
-                    files[k] = open(temp_img_path, 'rb')
-                    print 'saved image ' + str(temp_img_path)
-                    
-                # need to try to send requests multiple time, cuz container start up time is not deterministic
-                util.get_request_result_multiple_trials(url, payload, files, ret_file_path)
-                return send_file(ret_file_path)
+            if len(request.files) > 1:
+                logger.warning("onetime test received more than 1 image. only the first image is tested!")
+            min_cf = str(request.form['confidence'])
+            _, cur_file = request.files.items()[0]
+            input_image_path = os.path.join('/tmp',
+                                            str(random.getrandbits(32))+str(cur_file.filename))
+            cur_file.save(input_image_path)
+            logger.debug('saved test file to {}'.format(input_image_path))
+            ret_file_path = controller.run_onetime_classifier_test(base_classifier_id,
+                                                   input_image_path, min_cf)
+            if not ret_file_path:
+                response_util.json_error_response(msg="Failed to find the classifier")
+            return send_file(ret_file_path)
     return response_util.json_error_response(msg=str(form.errors))
 
 

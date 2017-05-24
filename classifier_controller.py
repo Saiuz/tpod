@@ -242,6 +242,28 @@ def create_short_running_test_classifier(base_classifier_id, time_remains=100):
     return host_port
 
 
+def run_onetime_classifier_test(base_classifier_id, input_image_path, min_cf):
+    base_classifier = Classifier.query.filter(Classifier.id == base_classifier_id).first()
+    if not base_classifier:
+        return None
+    base_image_name = util.get_classifier_image_name(base_classifier.name,
+                                                     base_classifier.id)    
+    if not util.has_container_image(base_image_name):
+        return None
+    docker_name = 'onetime_test_classifier_' + base_classifier_id + '_' + str(random.getrandbits(16))
+    output_image_path = '{}_output.jpg'.format(input_image_path)
+    ret_code = util.issue_blocking_cmd(['nvidia-docker', 'run', '--rm', '-v', '/tmp:/tmp',
+                             '--name', docker_name, base_image_name,
+                             'tools/tpod_detect_cli.py',
+                             '--input_image', input_image_path, 
+                             '--min_cf', min_cf,
+                             '--output_image', output_image_path])
+    if ret_code:
+        # something went wrong
+        return None
+    return output_image_path
+
+
 def create_evaluation(classifier_id, name, video_list):
     classifier = Classifier.query.filter(Classifier.id == classifier_id).first()
     if not classifier:

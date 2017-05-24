@@ -8,6 +8,11 @@ import socket
 import requests
 import time
 
+import docker
+import m_logger
+
+logger = m_logger.get_logger('UTIL')
+
 
 def get_file_size(file_name):
     stat = os.stat(file_name)
@@ -181,3 +186,26 @@ def safe_docker_image_name(name):
 def remove_file_if_exist(fpath):
     if os.path.exists(fpath) and os.path.isfile(fpath):
         os.remove(fpath)
+
+
+def has_container_image(image_name):
+    client = docker.from_env()
+    found = True
+    try:
+        client.images.get(str(image_name))
+    except docker.errors.ImageNotFound:
+        found = False
+    return found
+
+        
+def issue_blocking_cmd(cmd):
+    if isinstance(cmd, str):
+        cmd = cmd.split(" ")
+    logger.debug("issuing cmd: {}".format(' '.join(cmd)))
+    p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, stderr = p.communicate()
+    error_code = p.wait()
+    logger.debug("error_code: {}".format(error_code))
+    logger.debug("stdout: {}".format(stdout))
+    logger.debug("stderr: {}".format(stderr))
+    return error_code
