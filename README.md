@@ -95,3 +95,14 @@ Export through commandline
 ### Usage of generated TPOD container image
 
     nvidia-docker run -it -p 0.0.0.0:8000:8000 --rm --name <container-name> <container-image> /bin/bash run_server.sh
+
+Send http request:
+
+     http --form post http://cloudlet015.elijah.cs.cmu.edu:8000/detect picture@appleGreen.jpg confidence=0.95 format=box
+
+
+format: 
+1. http form binary file
+2. keywords:
+   1. confidence 
+   2. format: "box" or "image"
