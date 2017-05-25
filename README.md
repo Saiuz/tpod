@@ -114,7 +114,7 @@ Sample Request Format (using httpie):
 
      nvidia-docker run -it -v <host-dir>:<container-dir> --rm \
      --name <container-name> <container-image> tools/tpod_detect_cli.py \
-      --input_image <input-image-path> --min_cf <confidence score> --output_image <output-image-path>
+     --input_image <input-image-path> --min_cf <confidence score> --output_image <output-image-path>
 
 The --output_image is optional. If omitted, the detected bounding boxes will be printed to stdout in json format. If specified, the output will be an image with bounding boxes. <input-image-path> and <output-image-path> should be inside directories accessiable by both host and containers as specified in -v option. 
 
@@ -122,7 +122,7 @@ Example:
 
      nvidia-docker run -it -v /tmp:/tmp --rm \
      --name detection-container apple-detector-container-image tools/tpod_detect_cli.py \
-      --input_image /tmp/test.jpg --min_cf 0.5 --output_image /tmp/result.jpg
+     --input_image /tmp/test.jpg --min_cf 0.5 --output_image /tmp/result.jpg
 
 #### Container Image Content
 
