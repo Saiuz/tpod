@@ -26,7 +26,7 @@
                 <form action="../label/add" method="POST" class="form-inline add_label_form">
                     <input hidden name="video_id" value="{{video.id}}">
                     <div class="form-group">
-                        <input type="text" name="label_name" class="form-control input-sm input_label_add">
+                        <input type="text" name="label_name" class="form-control input-sm input_label_add" pattern="[a-z0-9_]+" title="a-z, 0-9, and underscore only">
                     </div>
                     <button class="btn btn-primary btn-sm label_add" type="submit">Add label</button>
                 </form>
@@ -96,7 +96,7 @@
     <form id="fileupload_form" action="upload" method="POST" enctype="multipart/form-data" class="form-inline">
         <div class="form-group">
             <label for="video_name">Video Name:</label>
-            <input id="video_name" type="text" name="video_name" class="form-control"><br>
+            <input id="video_name" type="text" name="video_name" class="form-control" pattern="[a-zA-Z0-9_]+" title="letters, numbers, and underscore only"><br>
         </div>
         <div class="form-group">
             <label for="fileupload">Choose the file:</label>
@@ -178,9 +178,10 @@
 
                             // check video name 
                             var video_name = $('#video_name').val()
-                            if (!video_name){
+                            var match = /^[a-zA-Z0-9_]+$/.test(video_name)
+                            if (!match){
                                 permitted=false;
-                                alert('Please Enter a valid video name')
+                                alert('Please Enter a valid video name. Use letters, numbers, and underscore only')
                             }
 
                             //check file type, only mp4, avi, zip are allowed
