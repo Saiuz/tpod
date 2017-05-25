@@ -96,7 +96,8 @@ Export through commandline
 
 #### Running as a standalone HTTP server
 
-    nvidia-docker run -it -p 0.0.0.0:8000:8000 --rm --name <container-name> <container-image> /bin/bash run_server.sh
+    nvidia-docker run -it -p 0.0.0.0:8000:8000 --rm \
+    --name <container-name> <container-image> /bin/bash run_server.sh
 
 HTTP Request Format: 
 1. The image to be detected should be a file in http form
@@ -106,17 +107,22 @@ HTTP Request Format:
 
 Sample Request Format (using httpie):
 
-    http --form post http://cloudlet015.elijah.cs.cmu.edu:8000/detect picture@appleGreen.jpg confidence=0.95 format=box
+    http --form post http://cloudlet015.elijah.cs.cmu.edu:8000/detect \
+    picture@appleGreen.jpg confidence=0.95 format=box
 
 #### Running as a detection script
 
-     nvidia-docker run -it -v <host-dir>:<container-dir> --rm --name <container-name> <container-image> tools/tpod_detect_cli.py --input_image <input-image-path> --min_cf <confidence score> --output_image <output-image-path>
+     nvidia-docker run -it -v <host-dir>:<container-dir> --rm \
+     --name <container-name> <container-image> tools/tpod_detect_cli.py \
+      --input_image <input-image-path> --min_cf <confidence score> --output_image <output-image-path>
 
 The --output_image is optional. If omitted, the detected bounding boxes will be printed to stdout in json format. If specified, the output will be an image with bounding boxes. <input-image-path> and <output-image-path> should be inside directories accessiable by both host and containers as specified in -v option. 
 
 Example:
 
-     nvidia-docker run -it -v /tmp:/tmp --rm --name detection-container apple-detector-container-image tools/tpod_detect_cli.py --input_image /tmp/test.jpg --min_cf 0.5 --output_image /tmp/result.jpg
+     nvidia-docker run -it -v /tmp:/tmp --rm \
+     --name detection-container apple-detector-container-image tools/tpod_detect_cli.py \
+      --input_image /tmp/test.jpg --min_cf 0.5 --output_image /tmp/result.jpg
 
 #### Container Image Content
 
