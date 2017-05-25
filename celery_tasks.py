@@ -31,6 +31,8 @@ STATE_PROGRESS = 'PROGRESS'
 STATE_FINISH = 'FINISH'
 STATE_ERROR = 'ERROR'
 
+
+
 # http://stackoverflow.com/questions/12044776/how-to-use-flask-sqlalchemy-in-a-celery-task
 @task_postrun.connect
 def close_session(*args, **kwargs):
@@ -39,6 +41,8 @@ def close_session(*args, **kwargs):
     # context, this ensures tasks have a fresh session (e.g. session errors 
     # won't propagate across tasks)
     db.session.remove()
+
+
     
 class TPODBaseTask(Task):
     def __init__(self):
@@ -127,11 +131,11 @@ class TPODBaseTask(Task):
     def update_status(self, state):
         self.status = state
         content = str(json.dumps(self.get_process_status()))
-        print "get update " + content
-        status = TaskStatusRecord(task_id=self.task_id, classifier_id=self.classifier_id)
+        print "get update for {} task_id {} ".format(self.task_id, content)
+        status = TaskStatusRecord.create(task_id=self.task_id,
+                                         classifier_id=self.classifier_id)
         status.update_time = datetime.datetime.now()
         status.body = content
-        db.session.add(status)
         db.session.commit()
 
 
