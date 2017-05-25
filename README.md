@@ -94,15 +94,34 @@ Export through commandline
 
 ### Usage of generated TPOD container image
 
+#### Running as a standalone HTTP server
+
     nvidia-docker run -it -p 0.0.0.0:8000:8000 --rm --name <container-name> <container-image> /bin/bash run_server.sh
 
-Send http request:
+HTTP Request Format: 
+1. The image to be detected should be a file in http form
+2. Other HTTP form keywords:
+   1. 'confidence': a number between 0 to 1. The minimum confidence score for bounding boxes outputted
+   2. 'format': "box" or "image". The format of output
 
-     http --form post http://cloudlet015.elijah.cs.cmu.edu:8000/detect picture@appleGreen.jpg confidence=0.95 format=box
+Sample Request Format (using httpie):
 
+    http --form post http://cloudlet015.elijah.cs.cmu.edu:8000/detect picture@appleGreen.jpg confidence=0.95 format=box
 
-format: 
-1. http form binary file
-2. keywords:
-   1. confidence 
-   2. format: "box" or "image"
+#### Running as a detection script
+
+     nvidia-docker run -it -v <host-dir>:<container-dir> --rm --name <container-name> <container-image> tools/tpod_detect_cli.py --input_image <input-image-path> --min_cf <confidence score> --output_image <output-image-path>
+
+The --output_image is optional. If omitted, the detected bounding boxes will be printed to stdout in json format. If specified, the output will be an image with bounding boxes. <input-image-path> and <output-image-path> should be inside directories accessiable by both host and containers as specified in -v option. 
+
+Example:
+
+     nvidia-docker run -it -v /tmp:/tmp --rm --name detection-container apple-detector-container-image tools/tpod_detect_cli.py --input_image /tmp/test.jpg --min_cf 0.5 --output_image /tmp/result.jpg
+
+#### Container Image Content
+
+* Caffe prototxt file is at: /py-faster-rcnn/assembled_end2end/faster_rcnn_test.pt
+* Model files are stored at: '/py-faster-rcnn/model_iter_<iteration-number>.caffemodel'. The one with the largest iteration number usually should be used for detection.
+* Label file is at: '/train/labels.txt'
+* Training Image Set file is at: '/train/image_set.txt'
+* Training Annotation file is at: '/train/label_set.txt'
