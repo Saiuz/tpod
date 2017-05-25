@@ -96,7 +96,7 @@
 
                         <div class="form-group form-inline">
                             <label for="classifier_name">Name:</label>
-                            <input name="classifier_name" class="form-control" value="{{classifier.name}}_iterative">
+                            <input name="classifier_name" class="form-control" value="{{classifier.name}}_iterative" pattern="[a-z0-9_]+" title="a-z, 0-9, and underscore only">
                         </div>
 
                         <label for="param_videos">Choose Videos:</label>
@@ -190,7 +190,7 @@
                     <input hidden name="classifier_id" value="{{classifier.id}}">
                     <div class="form-group form-inline">
                         <label>Name:</label>
-                        <input name="name" class="form-control" value="">
+                        <input name="name" class="form-control" value="" pattern="[a-z0-9_]+" title="a-z, 0-9, and underscore only">
                     </div>
 
                     <div class="form-group form-inline">
@@ -218,7 +218,7 @@
         <form id="form_create_classifier" method="POST" action="create_train">
             <div class="form-group">
                 <label for="classifier_name">Classifier Name:</label>
-                <input id="classifier_name" type="text" name="classifier_name" class="form-control"><br>
+                <input id="classifier_name" type="text" name="classifier_name" class="form-control" pattern="[a-z0-9_]+" title="a-z, 0-9, and underscore only"><br>
             </div>
             <div class="form-group form-inline">
                 <label for="param_network_type">Choose the Network Type:</label>
