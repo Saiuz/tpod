@@ -121,7 +121,7 @@ The --output_image is optional. If omitted, the detected bounding boxes will be 
 Example:
 
      nvidia-docker run -it -v /tmp:/tmp --rm \
-     --name detection-container apple-detector-container-image tools/tpod_detect_cli.py \
+     --name detection_container apple_detector_container_image tools/tpod_detect_cli.py \
      --input_image /tmp/test.jpg --min_cf 0.5 --output_image /tmp/result.jpg
 
 #### Container Image Content

@@ -146,22 +146,19 @@ def add_labeled_zip(video_name, zip_file_path):
     turkic_replacement.load_labeled_sample(video_name, valid_sample_list, extract_path, zip_file_path, current_user.id)
     return True
 
+# TODO: clean this export function
+# @video_page.route("/export", methods=["GET"])
+# @login_required
+# def export():
+#     if request.args.get('video_id', None):
+#         video_id = request.args.get('video_id')
+#         video = Video.query.filter(Video.id == video_id).first()
+#         if video is None:
+#             return 'Video not exist'
 
-@video_page.route("/export", methods=["GET"])
-@login_required
-def export():
-    if request.args.get('video_id', None):
-        video_id = request.args.get('video_id')
-        video = Video.query.filter(Video.id == video_id).first()
-        if video is None:
-            return 'Video not exist'
-
-        video_name = video.slug
-        target_folder = 'tmp'
-        export_label.export_zip(video_name, target_folder)
-        target_file_path = 'tmp/label_export.zip'
-        return send_file(target_file_path)
-    return 'Please specify video_id'
-
-
-
+#         video_name = video.slug
+#         target_folder = 'tmp'
+#         export_label.export_zip(video_name, target_folder)
+#         target_file_path = 'tmp/label_export.zip'
+#         return send_file(target_file_path)
+#     return 'Please specify video_id'

@@ -1,4 +1,5 @@
 {% extends "bootstrap/base.html" %}
+{% import "bootstrap/utils.html" as util %}
 
 {% block title %}Uploader{% endblock %}
 
@@ -71,9 +72,13 @@
 </div><!-- /.modal -->
 {% endblock %}
 
+
 {% block content %}
-    {% block page_content %}{% endblock %}
+    {{util.flashed_messages(dismissible=True)}}
+{% block page_content %}{% endblock %}
 {% endblock %}
+
+</div><!-- end container -->
 
 {% block scripts %}
 {{ super() }}

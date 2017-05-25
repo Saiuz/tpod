@@ -1,6 +1,7 @@
 import ntpath
 import os
 import time
+import shutil
 
 import config
 import util
@@ -38,7 +39,6 @@ def generate_frame_label(frame_labels):
 
 
 def delete_classifier(classifier_id):
-    # several necessary steps:
     '''
     1. db entity
     2. label_list, image_list, label_name
@@ -57,6 +57,18 @@ def delete_classifier(classifier_id):
         logger.info('contianer image {} not found'.format(container_image_name))
         logger.info(e)
     classifier.delete()
+
+
+def delete_evaluation(evaluation_id):
+    '''
+    2. roc image 
+    3. eval pkl file
+    1. db entity
+    '''
+    evaluation = EvaluationSet.query.filter(EvaluationSet.id == evaluation_id).first()
+    shutil.rmtree(evaluation.roc_dir,  ignore_errors = True)
+    shutil.rmtree(evaluation.eval_dir,  ignore_errors = True)
+    evaluation.delete()
 
 
 def create_training_classifier(current_user, classifier_name, epoch, video_list, label_list):
@@ -285,15 +297,14 @@ def create_evaluation(classifier_id, name, video_list):
     evaluation_task.apply_async((dataset_path, eval_path, classifier_id, base_image_name, evaluation_set_name, evaluation_result_name))
 
 
-def push_classifier(classifier_id, push_tag_name):
-    classifier = Classifier.query.filter(Classifier.id == classifier_id).first()
-    if not classifier:
-        return 'classifier not exist'
+def push_classifier(classifier, push_tag_name):
     image_name = util.get_classifier_image_name(classifier.name, classifier.id)
-    # image_name = '97-2949905851'
-    result = push_image_task.delay(image_name, push_tag_name)
-    ret = result.get()
-    if not ret:
-        return 'Error in pushing the image, see the celery log for detail'
-    return 'The image has been pushed to registery. \n You can pull the image with command: docker pull {}:{}'.format(config.CONTAINER_REGISTRY_URL, str(push_tag_name))
+    client = docker.from_env()
+    try:
+        image = client.images.get(str(image_name))
+    except docker.errors.ImageNotFound as e:
+        logger.error(e)
+        return 'Error: no contaienr image found for Classifier: {}'.format(classifier.name)
+    push_image_task.delay(image_name, push_tag_name)
+    return 'Success: The image is being pushed to registery. \n You can pull the image with command: docker pull {0}:{1} once is finished. You can go to {0} to check its status'.format(config.CONTAINER_REGISTRY_URL, str(push_tag_name))
 

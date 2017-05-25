@@ -151,9 +151,7 @@ def delete_classifier():
 def delete_evaluation():
     form = DeleteEvaluationForm(request.form)
     if form.validate():
-        evaluation = EvaluationSet.query.filter(EvaluationSet.id ==
-                                                 form.evaluation_id.data).first()
-        evaluation.delete()
+        controller.delete_evaluation(form.evaluation_id.data)
         return redirect(request.referrer)
     return response_util.json_error_response(msg=str(form.errors))
 
@@ -216,7 +214,7 @@ def create_iterative_classifier():
         epoch = form.epoch.data
         video_list = form.video_list.data
         video_list = video_list.split(',')
-        classifier_name = util.safe_docker_image_name(form.Classifier_name.data)
+        classifier_name = util.safe_docker_image_name(form.classifier_name.data)
         if db_helper.has_classifier_name_of_user(classifier_name, current_user):
             return response_util.json_error_response(msg='duplicate classifier name')
         controller.create_iterative_training_classifier(current_user, base_classifier_id, classifier_name, epoch, video_list)
@@ -312,7 +310,7 @@ def create_evaluation():
         video_list = video_list.split(',')
         print 'create evaluation with name %s, video list %s ' % (str(name), str(video_list))
         controller.create_evaluation(classifier_id, name, video_list)
-
+        flash('Evaluation Job Created. Please refresh the page after a few minutes to see the ROC graph.', 'success')
         return redirect(request.referrer)
     return response_util.json_error_response(msg=str(form.errors))
 
@@ -326,8 +324,10 @@ def push_classifier():
         classifier = Classifier.query.filter(Classifier.id == classifier_id).first()
         if not classifier:
             return response_util.json_error_response(msg='classifier not exist')
-        push_tag_name = 'tpod-image-' + classifier.name + '-' + str(random.getrandbits(32))
-        return controller.push_classifier(classifier_id, push_tag_name)
+        push_tag_name = 'tpod-image-' + current_user.username + '-' + classifier.name
+        msg = controller.push_classifier(classifier, push_tag_name)
+        flash(msg)
+        return redirect(request.referrer)
 
     return response_util.json_error_response(msg=str(form.errors))
 

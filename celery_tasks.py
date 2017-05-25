@@ -366,13 +366,14 @@ def evaluation_task(self, dataset_path, eval_path, classifier_id, docker_image_i
 
     docker_data_volume = str(dataset_path) + ':/dataset'
     docker_data_volume_eval = str(eval_path) + ':/eval'
-    example_cmd = 'python tools/tpod_eval_net.py --gpu 0 --output_dir . --eval_set_name %s --eval_result_name %s ' % \
-                  (str(evaluation_set_name), str(evaluation_result_name))
-    print 'execute: %s ' % str(example_cmd)
-    proc = subprocess.Popen(['nvidia-docker', 'run', '-v', docker_data_volume, '-v', docker_data_volume_eval, '--name',
+    # TODO:
+    # -u user is needed, otherwise the output file would be root owned
+    cmd = ['nvidia-docker', 'run', '--rm', '-v', docker_data_volume, '-v', docker_data_volume_eval, '--name',
                              docker_name, image_name,
                              'python', 'tools/tpod_eval_net.py', '--gpu', '0', '--output_dir', '.', '--eval_set_name',
-                             str(evaluation_set_name), '--eval_result_name', str(evaluation_result_name)])
+                             str(evaluation_set_name), '--eval_result_name', str(evaluation_result_name)]
+    print 'issuing cmd: {}'.format(' '.join(cmd))
+    proc = subprocess.Popen(cmd)
 
     # bind the docker api
     client = docker.from_env()
@@ -400,28 +401,20 @@ def evaluation_task(self, dataset_path, eval_path, classifier_id, docker_image_i
         self.update_status(STATE_PROGRESS)
         time.sleep(1 / float(self.monitor_rate))
 
-    # since this is a test task, just remove it
-    # stop and remove the container
-    self.container.remove(force=True)
-
     proc.terminate()
     self.update_status(STATE_FINISH)
 
 
 @tpod_celery.task(trail=True)
 def push_image_task(image_name, push_tag_name):
-    client = docker.from_env()
-    print 'begin pushing image'
-    print 'image name %s ' % str(image_name)
+    print 'begin pushing image {}'.format(push_tag_name)
     try:
         image = client.images.get(str(image_name))
-        print 'tag name %s ' % str(push_tag_name)
-        image.tag(config.CONTAINER_REGISTRY_URL, tag=push_tag_name)
-        ret = client.images.push(config.CONTAINER_REGISTRY_URL, tag=push_tag_name)
-        print 'end pushing image'
-        print ret
-        return ret
-    except Exception as e:
-        print e
-    return False
-
+    except docker.errors.ImageNotFound as e:
+        logger.error(e)
+        logger.error('Error: no contaienr image found for Classifier: {}'.format(classifier.name))
+        return -1
+    image.tag(config.CONTAINER_REGISTRY_URL, tag=push_tag_name)
+    ret = client.images.push(config.CONTAINER_REGISTRY_URL, tag=push_tag_name)
+    print 'finished pushing image. return code: {}'.format(ret)
+    return ret

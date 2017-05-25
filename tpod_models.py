@@ -1,8 +1,11 @@
+import os
+
 from extensions import db
 from database import Column, Model, CRUDMixin, SurrogatePK, reference_col, relationship
 from flask_login.mixins import UserMixin
 from vatic.meta_table import video_evaluation_association_table, classifier_evaluation_association_table, video_classifier_association_table
 from vatic.models import Video, Label
+import config
 
 class User(UserMixin, Model, CRUDMixin):
     __tablename__   = "users"
@@ -82,3 +85,11 @@ class EvaluationSet(Model, CRUDMixin):
 
     prediction_result_file_path  = Column(db.String(550))
     roc_graph_file_path  = Column(db.String(550))
+
+    @property
+    def roc_dir(self):
+        return os.path.join(config.IMG_PATH, str(self.id))
+
+    @property
+    def eval_dir(self):
+        return os.path.join(config.EVALUATION_PATH, str(self.id))

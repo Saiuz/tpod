@@ -26,25 +26,6 @@ def delete_video(video_id):
         if os.path.exists(extract_file_path):
             shutil.rmtree(extract_file_path)
 
-        # delete frame folder
-        frame_folder_path = 'public/frames/' + str(video.slug)
-        try:
-            shutil.rmtree(frame_folder_path)
-        except:
-            logger.debug('remove video frame unsuccess')
-        try:
-            os.remove(frame_folder_path)
-        except:
-            logger.debug('remove video frame unsuccess')
-        try:
-            os.unlink(frame_folder_path)
-        except:
-            logger.debug('remove video frame unsuccess')
-        try:
-            os.rmdir(frame_folder_path)
-        except:
-            logger.debug('remove video frame unsuccess')
-
         # delete labels
         labels = session.query(Label).filter(Label.videoid == video_id).all()
         for label in labels:
