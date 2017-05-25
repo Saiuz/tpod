@@ -1,0 +1,3 @@
+[submodule "cnn/py-faster-rcnn"]
+	path = cnn/py-faster-rcnn
+	url = git@github.com:junjuew/py-faster-rcnn.git
