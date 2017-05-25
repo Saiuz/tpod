@@ -84,6 +84,11 @@ def get_video_by_id(video_id):
         return None
 
 
+def select_video_by_slug_and_owner(slug, owner):
+    video = Video.query.filter(and_(Video.slug == slug, Video.owner_id == owner.id)).first()
+    return video
+
+
 def get_videos_of_user(user_id):
     query_result = Video.query.filter(Video.owner_id == user_id).all()
     result = []

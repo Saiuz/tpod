@@ -1,6 +1,7 @@
 from flask import Flask, request, send_from_directory, render_template, Blueprint
 from flask import redirect
 from flask.views import View
+from flask_login import current_user
 import simplejson
 import os
 import cv2
@@ -22,6 +23,7 @@ from util import shortcache
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 import config
+import db_helper
 
 HOME_BASE = os.path.dirname(os.path.abspath(__file__))
 STATIC_BASE = os.path.join(HOME_BASE, 'public')
@@ -409,13 +411,16 @@ def trackforward(id, start, end, tracker, trackid):
     }
 
 
-@vatic_page.route('/frames/<path:path>', methods=['GET'])
+@vatic_page.route('/frames/<string:video_slug>/<path:frame_path>', methods=['GET'])
 @shortcache
-def no_cache_video_frames(path):
-    if '.' in path:
-        public_dir = 'public/frames'
-        return send_from_directory(public_dir, path)
-    return "Frame not found"
+def no_cache_video_frames(video_slug, frame_path):
+    video = db_helper.select_video_by_slug_and_owner(video_slug, current_user)
+    if video:
+        public_dir = video.extract_path
+        return send_from_directory(public_dir, frame_path)
+    else:
+        logger.error("video {} for user {} not found".format(video_slug, current_user.username))
+        return "frame not found!"
 
 
 @vatic_page.route('/<path:path>', methods=['GET'])

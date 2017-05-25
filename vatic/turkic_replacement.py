@@ -242,17 +242,6 @@ def load(video_name, video_path_output, labels, orig_file_path, user_id, segment
             labelcache[labeltext] = label
             lastlabel = label
 
-    print "Creating symbolic link..."
-    symlink = "public/frames/{0}".format(video.slug)
-
-    try:
-        os.remove(symlink)
-    except:
-        pass
-    if not os.path.exists('public/frames'):
-        os.makedirs('public/frames')
-    os.symlink(video.location, symlink)
-
     print "Creating segments..."
     # create shots and jobs
     startframe = 0
@@ -655,17 +644,6 @@ def load_labeled_sample(video_name, valid_sample_list, video_path_output, orig_f
             video.labels.append(label)
             labelcache[labeltext] = label
             lastlabel = label
-
-    print "Creating symbolic link..."
-    symlink = "public/frames/{0}".format(video.slug)
-
-    try:
-        os.remove(symlink)
-    except:
-        pass
-    if not os.path.exists('public/frames'):
-        os.makedirs('public/frames')
-    os.symlink(video.location, symlink)
 
     print "Creating segments..."
     # create shots and jobs
