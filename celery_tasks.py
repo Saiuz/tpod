@@ -131,9 +131,8 @@ class TPODBaseTask(Task):
         status = TaskStatusRecord(task_id=self.task_id, classifier_id=self.classifier_id)
         status.update_time = datetime.datetime.now()
         status.body = content
-        session = db.session
-        session.add(status)
-        session.commit()
+        db.session.add(status)
+        db.session.commit()
 
 
 class TPODTrainingTask(TPODBaseTask):

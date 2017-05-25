@@ -10,5 +10,4 @@ label_list
 dataset
 eval
 vatic/dependencies/*
-migrations
 tmp/

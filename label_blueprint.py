@@ -20,10 +20,9 @@ def delete_label():
     if form.validate():
         label = Label.query.filter(Label.id == form.label_id.data).first()
         video = Video.query.filter(Video.id == label.videoid).first()
-        session = db.session
         video.labels.remove(label)
         label.delete()
-        session.commit()
+        db.session.commit()
         return redirect(request.referrer)
     return response_util.json_error_response(msg=str(form.errors))
 
@@ -44,12 +43,11 @@ def edit_label():
 def add_label():
     form = AddLabelForm(request.form)
     if form.validate():
-        session = db.session
         label = Label(text = form.label_name.data, videoid = form.video_id.data)
-        video = session.query(Video).filter(Video.id == form.video_id.data).first()
+        video = Video.query.filter(Video.id == form.video_id.data).first()
         video.labels.append(label)
-        session.add(label)
-        session.commit()
+        db.session.add(label)
+        db.session.commit()
         turkic_replacement.publish()
         return redirect(request.referrer)
     return response_util.json_error_response(msg=str(form.errors))

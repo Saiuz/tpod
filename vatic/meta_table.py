@@ -13,6 +13,7 @@ classifier_evaluation_association_table = Table('classifier_evaluation_associati
     Column('classifiers_id', Integer, ForeignKey('classifiers.id'))
 )
 
-
-
-
+video_classifier_association_table = Table('video_classifier_association',
+    Column('videos_id', Integer, ForeignKey('videos.id')),
+    Column('classifiers_id', Integer, ForeignKey('classifiers.id'))
+)

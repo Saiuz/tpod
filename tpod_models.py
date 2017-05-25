@@ -1,7 +1,7 @@
 from extensions import db
 from database import Column, Model, CRUDMixin, SurrogatePK, reference_col, relationship
 from flask_login.mixins import UserMixin
-from vatic.meta_table import video_evaluation_association_table, classifier_evaluation_association_table
+from vatic.meta_table import video_evaluation_association_table, classifier_evaluation_association_table, video_classifier_association_table
 from vatic.models import Video, Label
 
 class User(UserMixin, Model, CRUDMixin):
@@ -31,8 +31,9 @@ class Classifier(Model, CRUDMixin):
 
     owner_id = Column(db.Integer, db.ForeignKey("users.id"))
 
-    # one to many
-    videos = relationship('Video')
+    # many to many
+    videos = relationship("Video", secondary=video_classifier_association_table, backref='classifiers')
+
     # it's stored as string array, since there is no reference need
     labels = Column(db.String(250))
     # one to many

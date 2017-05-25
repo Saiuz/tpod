@@ -20,6 +20,6 @@ echo "Please enter root user MySQL password!"
 read -s -p "Password:" rootpasswd
 mysql -uroot -p${rootpasswd} -e "CREATE DATABASE ${DB_NAME} /*\!40100 DEFAULT CHARACTER SET utf8 */;" || true
 mysql -uroot -p${rootpasswd} -e "CREATE USER ${DB_USER}@localhost IDENTIFIED BY '${DB_PASSWORD}';" || true
-mysql -uroot -p${rootpasswd} -e "GRANT ALL PRIVILEGES ON ${DB_USER}.* TO '${DB_NAME}'@'localhost';" || true
+mysql -uroot -p${rootpasswd} -e "GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'localhost';" || true
 mysql -uroot -p${rootpasswd} -e "FLUSH PRIVILEGES;" || true
 echo "success"

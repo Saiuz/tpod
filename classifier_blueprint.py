@@ -5,6 +5,8 @@ from flask_login import LoginManager, login_required, login_user, logout_user, c
 from flask import Flask, request, render_template, session, redirect, url_for, flash, send_from_directory, send_file, g, \
     abort, Response
 from flask import jsonify
+
+
 import db_helper
 from forms import *
 import response_util
@@ -170,6 +172,9 @@ def create_training_classifier():
                     str(parameters.MINIMUM_TRAIN_GPU_MEMORY), str(current_gpu_memory)))
 
         classifier_name = util.safe_docker_image_name(form.classifier_name.data)
+        if db_helper.has_classifier_name_of_user(classifier_name, current_user):
+            return response_util.json_error_response(msg='duplicate classifier name')
+
         epoch = form.epoch.data
         network_type = form.network_type.data
         video_list = form.video_list.data
@@ -212,6 +217,8 @@ def create_iterative_classifier():
         video_list = form.video_list.data
         video_list = video_list.split(',')
         classifier_name = util.safe_docker_image_name(form.Classifier_name.data)
+        if db_helper.has_classifier_name_of_user(classifier_name, current_user):
+            return response_util.json_error_response(msg='duplicate classifier name')
         controller.create_iterative_training_classifier(current_user, base_classifier_id, classifier_name, epoch, video_list)
 
         return redirect(request.referrer)

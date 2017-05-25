@@ -43,8 +43,10 @@ class Video(Model, CRUDMixin):
 
     # many to one
     owner_id = Column(Integer, ForeignKey("users.id"))
-    # many to one
-    classifier_id = Column(Integer, ForeignKey("classifiers.id"))
+
+    # many to many
+    # classifier_id = Column(Integer, ForeignKey("classifiers.id"))
+
     # many to many
     evaluation_sets = relationship("EvaluationSet", secondary=video_evaluation_association_table, back_populates='videos')
 

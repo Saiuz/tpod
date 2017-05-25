@@ -113,7 +113,7 @@ def signup():
 @app.before_first_request
 def create_default_user():
     username = os.environ.get('DEFAULT_USER', 'tpod')
-    password = os.environ.get('DEFAULT_USER_PASSWORD', 'your-super-secret-password')
+    password = os.environ.get('DEFAULT_USER_PASSWORD', 'secret')
     default_user = User.query.filter_by(username=username).first()
     if not default_user:
         default_user = User.create(password= password, username=username)

@@ -1,5 +1,3 @@
-from vatic.models import *
-from tpod_models import *
 import config
 import os, fnmatch
 import re
@@ -8,6 +6,11 @@ import matplotlib
 # Force matplotlib to not use any Xwindows backend.
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+
+from sqlalchemy import and_
+
+from vatic.models import *
+from tpod_models import *
 
 
 def generate_label_obj(label):
@@ -135,7 +138,6 @@ def get_videos_labels_of_classifier(classifier):
             'id': video.id,
         }
         videos.append(video_obj)
-        # search all labels of that video
     if classifier.labels is not None and len(str(classifier.labels)) > 0:
         labels = str(classifier.labels).split(',')
     else:
@@ -192,7 +194,6 @@ def get_classifiers_of_user(user_id):
     for classifier in query_result:
         videos, labels = get_videos_labels_of_classifier(classifier)
         evaluation_sets = get_evaluations_of_classifier(classifier)
-        print 'get evaluation %s ' % str(evaluation_sets)
         obj = {
             'name': classifier.name,
             'id': classifier.id,
@@ -202,7 +203,10 @@ def get_classifiers_of_user(user_id):
             'parent_id': classifier.parent_id,
             'evaluation_sets': evaluation_sets
         }
-        print 'get task type %s' % str(classifier.task_type)
-
         result.append(obj)
     return result
+
+
+def has_classifier_name_of_user(classifier_name, user):
+    classifier = Classifier.query.filter(and_(Classifier.owner_id==user.id, Classifier.name == classifier_name)).first()
+    return bool(classifier)

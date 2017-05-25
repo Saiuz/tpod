@@ -62,7 +62,7 @@ def delete_classifier(classifier_id):
 def create_training_classifier(current_user, classifier_name, epoch, video_list, label_list):
     image_list_file_path, label_list_file_path, label_name_file_path = turkic_replacement.dump_image_and_label_files(
         video_list, label_list, remove_none_frame=True)
-    classifier = Classifier(name=classifier_name, owner_id=current_user.id)
+    classifier = Classifier.create(name=classifier_name, owner_id=current_user.id)
     # add videos
     classifier.training_image_list_file_path = image_list_file_path
     classifier.training_label_list_file_path = label_list_file_path
@@ -80,10 +80,6 @@ def create_training_classifier(current_user, classifier_name, epoch, video_list,
             classifier.videos.append(video)
     classifier.labels = ','.join(label_list)
 
-    session = db.session
-    session.add(classifier)
-    session.flush()
-
     # get id of the classifier
     classifier_id = classifier.id
     print 'generate classifier with id %s ' % str(classifier_id)
@@ -99,7 +95,7 @@ def create_training_classifier(current_user, classifier_name, epoch, video_list,
     task_id = launch_training_docker_task(base_image_name, result_image_name, classifier_id, train_set_name, epoch)
     print 'launched the docker with task id %s ' % str(task_id)
     classifier.task_id = task_id
-    session.commit()
+    db.session.commit()
 
 
 def create_iterative_training_classifier(current_user, base_classifier_id, classifier_name, epoch, video_list):
@@ -113,7 +109,7 @@ def create_iterative_training_classifier(current_user, base_classifier_id, class
     image_list_file_path, label_list_file_path, label_name_file_path = turkic_replacement.dump_image_and_label_files(
         video_list, label_list, remove_none_frame=True)
 
-    classifier = Classifier(name=classifier_name, owner_id=current_user.id)
+    classifier = Classifier.create(name=classifier_name, owner_id=current_user.id)
     # add videos
     classifier.training_image_list_file_path = image_list_file_path
     classifier.training_label_list_file_path = label_list_file_path
@@ -134,10 +130,6 @@ def create_iterative_training_classifier(current_user, base_classifier_id, class
             classifier.videos.append(video)
     classifier.labels = ','.join(label_list)
 
-    session = db.session
-    session.add(classifier)
-    session.flush()
-
     # get id of the classifier
     classifier_id = classifier.id
     print 'generate iterative classifier with id %s ' % str(classifier_id)
@@ -152,7 +144,7 @@ def create_iterative_training_classifier(current_user, base_classifier_id, class
     task_id = launch_training_docker_task(base_image_name, result_image_name, classifier_id, train_set_name, epoch, weights='iterative')
     print 'launched the pretrain docker with task id %s ' % str(task_id)
     classifier.task_id = task_id
-    session.commit()
+    db.session.commit()
 
 
 def launch_training_docker_task(base_image_name, result_image_name, classifier_id, train_set_name, epoch, weights=None):
@@ -189,7 +181,7 @@ def create_test_classifier(current_user, base_classifier_id, time_remains=1000):
     if not base_classifier:
         return None
 
-    classifier = Classifier(name=base_classifier.name, owner_id=current_user.id)
+    classifier = Classifier.create(name=base_classifier.name, owner_id=current_user.id)
     # add videos
     classifier.training_image_list_file_path = base_classifier.training_image_list_file_path
     classifier.training_label_list_file_path = base_classifier.training_label_list_file_path
@@ -206,10 +198,6 @@ def create_test_classifier(current_user, base_classifier_id, time_remains=1000):
     classifier.videos = base_classifier.videos
     classifier.labels = base_classifier.labels
 
-    session = db.session
-    session.add(classifier)
-    session.flush()
-
     # get id of the classifier
     classifier_id = classifier.id
     print 'generate classifier with id %s ' % str(classifier_id)
@@ -224,7 +212,7 @@ def create_test_classifier(current_user, base_classifier_id, time_remains=1000):
     classifier.task_id = task_id
     classifier.image_id = task_id
     classifier.container_id = task_id
-    session.commit()
+    db.session.commit()
     return host_port
 
 
@@ -277,9 +265,8 @@ def create_evaluation(classifier_id, name, video_list):
         evaluation_set.videos.append(video)
 
     classifier.evaluation_sets.append(evaluation_set)
-    session = db.session
-    session.add(evaluation_set)
-    session.commit()
+    db.session.add(evaluation_set)
+    db.session.commit()
     print 'created evaluation set with name %s id %s ' % (str(name), str(evaluation_set.id))
     evaluation_result_name = str(evaluation_set.id)
 

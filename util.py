@@ -180,6 +180,7 @@ def get_eval_path():
 
 def get_classifier_image_name(classifier_name, classifier_id):
     result_image_name = str(classifier_name) + '-id-' + str(classifier_id)
+    result_image_name = result_image_name.lower()
     return result_image_name
 
 
