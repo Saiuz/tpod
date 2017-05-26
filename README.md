@@ -127,7 +127,7 @@ Example:
 #### Container Image Content
 
 * Caffe prototxt file is at: /py-faster-rcnn/assembled_end2end/faster_rcnn_test.pt
-* Model files are stored at: '/py-faster-rcnn/model_iter_<iteration-number>.caffemodel'. The one with the largest iteration number usually should be used for detection.
+* Model files are stored at: '/py-faster-rcnn/model_iter_(iteration-number).caffemodel'. The one with the largest iteration number usually should be used for detection.
 * Label file is at: '/train/labels.txt'
 * Training Image Set file is at: '/train/image_set.txt'
 * Training Annotation file is at: '/train/label_set.txt'
