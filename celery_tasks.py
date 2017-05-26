@@ -409,6 +409,7 @@ def evaluation_task(self, dataset_path, eval_path, classifier_id, docker_image_i
 def push_image_task(image_name, push_tag_name):
     print 'begin pushing image {}'.format(push_tag_name)
     try:
+        client = docker.from_env()
         image = client.images.get(str(image_name))
     except docker.errors.ImageNotFound as e:
         logger.error(e)
