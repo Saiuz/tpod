@@ -19,3 +19,7 @@ IMAGE_MAX_HEIGHT=480
 
 import os
 CONTAINER_REGISTRY_URL = os.environ.get('CONTAINER_REGISTRY_URL', 'registry.cmusatyalab.org/junjuew/container-registry')
+
+# commands
+VIDEO_RESIZE_CMD_PAT = 'avconv -i {0} -s {2}x{3} -an {1}' # input, output, width, height
+VIDEO_EXTRACT_CMD_PAT = 'avconv -i {0} -f image2 {1}' # input_video, output_regex

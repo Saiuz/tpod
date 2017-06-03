@@ -68,10 +68,13 @@ def upload():
         file_path = save_file(data_file, file_name)
         if util.is_video_file(file_name):
             print 'This is an original video, begin extracting'
-            add_video(file_path, video_name)
-            file_size = util.get_file_size(file_path)
-            return jsonify(name=file_name,
+            try:
+                add_video(file_path, video_name)
+                file_size = util.get_file_size(file_path)
+                return jsonify(name=file_name,
                        size=file_size)
+            except ValueError as e:
+                return jsonify(name=file_name, error='video extraction failed')
         elif util.is_zip_file(file_name):
             if not labeled:
                 print 'This is an image sequence, begin extracting'

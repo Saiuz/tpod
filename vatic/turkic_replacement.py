@@ -1,3 +1,7 @@
+import time
+import random
+import math
+
 import cv2
 
 from models import *
@@ -5,11 +9,14 @@ from tpod_models import *
 import shutil
 from vatic import merge
 import velocity
-import time
 import util
 import xml.etree.ElementTree as ET
-
+from vision import ffmpeg
+import m_logger
 from extensions import db
+
+
+logger = m_logger.get_logger(os.path.basename(__file__))
 
 
 def delete_video(video_id):
@@ -50,6 +57,20 @@ def delete_video(video_id):
     return False
 
 
+def constrain_resolution(h, w, max_h, max_w):
+    if h <= max_h and w <= max_w:
+        target_height, target_width = h, w
+    else:
+        hw_ratio = float(h) / float(w)
+        if hw_ratio > float(max_h) / max_w:
+            target_height = max_h
+            target_width = target_height / hw_ratio
+        else:
+            target_width = max_w
+            target_height = target_width * hw_ratio
+    return int(target_height), int(target_width)
+
+
 def constrain_image_resolution(image, max_h, max_w):
     h, w, _ = image.shape
     if h <= max_h and w <= max_w:
@@ -66,24 +87,86 @@ def constrain_image_resolution(image, max_h, max_w):
     return image
 
 
+def video_to_image_of_resolution(path_video, width, height):
+    sequence = ffmpeg.extract(path_video)
+    try:
+        for frame, image in enumerate(sequence):
+            if frame % 100 == 0:
+                logger.debug("Decoding frames {0} to {1}"
+                    .format(frame, frame + 100))
+            image.thumbnail((width, height), Image.BILINEAR)
+            path = Video.getframepath(frame, args.output)
+            try:
+                image.save(path)
+            except IOError:
+                os.makedirs(os.path.dirname(path))
+                image.save(path)
+    except:
+        print "Aborted. Cleaning up..."
+        shutil.rmtree(args.output)
+        raise ValueError("Error extracting video")
+
+
+round_down_to_even = lambda x: int(math.floor(x / 2.) * 2)
+
+
+def get_resized_video_resolution(path_video):
+    # get video resolution information
+    cap = cv2.VideoCapture(path_video)
+    count = 0
+    success, image = cap.read()
+    resized_h, resized_w = -1, -1
+    if success:
+        if len(image.shape) == 3:
+            h, w, _ = image.shape
+        else:
+            h, w = image.shape
+        resized_h, resized_w = constrain_resolution(h, w, config.IMAGE_MAX_HEIGHT, config.IMAGE_MAX_WIDTH)
+    cap.release()
+    # H.264 require the image size to be even
+    return round_down_to_even(resized_w), round_down_to_even(resized_h)
+
+
+def resize_video(path_video, target_width, target_height):
+    video_full_name = os.path.basename(path_video)
+    video_file_name, ext = os.path.splitext(video_full_name)
+    tmp_resized_video_path = '/tmp/{}_{}{}'.format(video_file_name, 'resized', ext)
+    ret_code = util.issue_blocking_cmd(config.VIDEO_RESIZE_CMD_PAT.format(path_video, tmp_resized_video_path, target_width, target_height))
+    if ret_code != 0:
+        raise ValueError("error resizing video")
+    return tmp_resized_video_path
+
+
+def extract_video_to_image(path_video):
+    tmp_extracted_video_regex = '/tmp/{}_{}/%d.jpg'.format(os.path.basename(path_video), 'extracted')
+    tmp_extracted_video_dir = os.path.dirname(tmp_extracted_video_regex)
+    if not os.path.isdir(tmp_extracted_video_dir):
+        os.makedirs(tmp_extracted_video_dir)
+    ret_code = util.issue_blocking_cmd(config.VIDEO_EXTRACT_CMD_PAT.format(path_video, tmp_extracted_video_regex))
+    if ret_code != 0:
+        raise ValueError("error extracting video")
+    return tmp_extracted_video_dir
+
+
 def extract(path_video, path_output):
     if not os.path.isdir(path_output):
         os.makedirs(path_output)
     if not os.path.isfile(path_video):
         return False
-    cap = cv2.VideoCapture(path_video)
-    count = 0
-    success, image = cap.read()
-    while success:
-        img_path = Video.getframepath(count, path_output)
+
+    target_width, target_height = get_resized_video_resolution(path_video)
+    tmp_resized_video_path = resize_video(path_video, target_width, target_height)
+    tmp_extracted_video_dir = extract_video_to_image(tmp_resized_video_path)
+    # mv to correct location
+    idx = 1
+    while os.path.exists(os.path.join(tmp_extracted_video_dir, '{}.jpg'.format(idx))):
+        tmp_image_path = os.path.join(tmp_extracted_video_dir, '{}.jpg'.format(idx))
+        img_path = Video.getframepath(idx-1, path_output)
         if not os.path.isdir(os.path.dirname(img_path)):
             os.makedirs(os.path.dirname(img_path))
-        image = constrain_image_resolution(image, config.IMAGE_MAX_HEIGHT,
-                                           config.IMAGE_MAX_WIDTH)
-        cv2.imwrite(img_path, image)
-        success, image = cap.read()
-        count += 1
-    cap.release()
+        shutil.move(tmp_image_path, img_path)
+        logger.debug('moving {} --> {}'.format(tmp_image_path, img_path))
+        idx += 1
     return True
 
 
