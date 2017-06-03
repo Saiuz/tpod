@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, abort, redirect
 from flask_login import LoginManager, login_required, login_user, logout_user, current_user
-from flask import request, url_for, jsonify, Response
+from flask import request, url_for, jsonify, Response, flash
 import util
 import config
 import os
@@ -53,11 +53,13 @@ def delete_video():
 @video_page.route("/upload", methods=["POST"])
 def upload():
     if request.method == 'POST':
-        # we are expected to save the uploaded file and return some infos about it:
-        #                              vvvvvvvvv   this is the name for input type=file
         video_name = request.form['video_name']
-        labeled = False
+        video = db_helper.select_video_by_slug_and_owner(video_name, current_user)
+        if video:
+            logger.debug('duplicate video name {}'.format(video_name))
+            return jsonify(name=video_name, error='Duplicate file name is not allowed')
 
+        labeled = False
         if 'labeled' in request.form:
             labeled = True
         data_file = request.files['file']

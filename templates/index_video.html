@@ -20,11 +20,11 @@
         <tbody>
         {% for video in videos %}
         <tr>
-            <th class="table_center">
+            <td class="table_center">
                 {{video.name}}
 
-            </th>
-            <th>
+            </td>
+            <td>
                 <form action="../label/add" method="POST" class="form-inline add_label_form">
                     <input hidden name="video_id" value="{{video.id}}">
                     <div class="form-group">
@@ -59,8 +59,8 @@
                     {% endfor%}
                 </ul>
 
-            </th>
-            <th class="table_center">
+            </td>
+            <td class="table_center">
 
                 <ul class="list_jobs">
                     {% for url_obj in video.job_urls %}
@@ -70,15 +70,15 @@
                     {% endfor%}
                 </ul>
 
-            </th>
-            <th class="table_center">
+            </td>
+            <td class="table_center">
                 <form class="item_delete_video" action="delete" method="POST">
                     <input hidden name="video_id" value="{{video.id}}">
                     <button class="btn btn-danger" type="submit">Delete Video</button>
                 </form>
-            </th>
+            </td>
 <!--
-            <th class="table_center table_download">
+            <td class="table_center table_download">
                 Export the Labeled Video
                 (this will be in pascal format, you will receive a zip ball containing both images (under JPEGImages folder) and annotations (under Annotations folder))
 
@@ -86,7 +86,7 @@
                     <input hidden name="video_id" value="{{video.id}}">
                     <button class="btn" type="submit">Export Video</button>
                 </form>
-            </th>
+            </td>
 -->
         </tr>
         {% endfor%}
@@ -185,7 +185,8 @@
                             var match = /^[a-zA-Z0-9_]+$/.test(video_name)
                             if (!match){
                                 permitted=false;
-                                alert('Please Enter a valid video name. Use letters, numbers, and underscore only')
+                                alert('Please Enter a valid video name. Use letters, numbers, and underscore only');
+                                return;
                             }
 
                             //check file type, only mp4, avi, zip are allowed
@@ -193,7 +194,21 @@
                             if (!(/\.(zip|mp4|avi|m4v)$/i).test(uploadFile.name)) {
                                 permitted = false;
                                 alert('file type not allowed, you can upload either video(mp4/avi) or zip file')
+                                return;
                             }
+
+                            //check duplicate video names
+                            var video_name_header_column = $("table th:contains('Name')");
+                            var columnIndex = video_name_header_column.index() + 1;
+                            var video_name_elements = $('table tr td:nth-child(' + columnIndex + ')')
+                            video_name_elements.each(function() {
+                                var name = $(this).text().replace(/\s+/g, "");
+                                if (video_name === name){
+                                    permitted = false;
+                                    alert('Duplicate file name!')
+                                    return;
+                                }
+                            });
 
                             if (permitted) {
                                 data.context = $('<p/>').text('Uploading and Extracting...').replaceAll($(this));
@@ -202,8 +217,24 @@
                         });
             },
             done: function (e, data) {
-                data.context.text('Upload finished.');
-                location.reload()
+                console.log(data)
+                if (data.result.hasOwnProperty("error")){
+                    BootstrapDialog.show({
+                        title: 'Error',
+                        message: data.result.error,
+                        buttons: [{
+                            label: 'Dismiss',
+                            action: function (dialogRef) {
+                                dialogRef.close();
+                                location.reload()
+                            }
+                        }]
+                    });
+                }
+                else {
+                    data.context.text('Upload finished.');
+                    location.reload()
+                }
             }
         });
     });

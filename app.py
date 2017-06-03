@@ -83,7 +83,7 @@ def login():
             user = form.user
             print "login success "
             login_user(user)
-            return response_util.json_success_response(redirect='/video/list')
+            return response_util.json_success_response(redirect=url_for('video_page.list_video'))
         else:
             return response_util.json_error_response(msg=str(form.errors))
     else:
