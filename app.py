@@ -70,7 +70,7 @@ admin.register(Classifier, session=db.session)
 @app.route("/", methods=["GET", "POST"])
 @login_required
 def index():
-    return redirect('/video/list')
+    return redirect(url_for('video_page.list_video'))
 
 
 @app.route("/login", methods=["GET", "POST"])
