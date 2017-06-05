@@ -50,7 +50,7 @@
                             <input hidden name="label_id" value="{{label.id}}">
                             <div class="form-group">
                                 <input id="label_name" placeholder="Rename by type in name and 'Enter'" type="text"
-                                       name="label_name" class="form-control label_edit"><br>
+                                       name="label_name" class="form-control label_edit" pattern="[a-z0-9_]+" title="a-z, 0-9, and underscore only"><br>
                             </div>
                             <button class="btn btn-primary label_edit_button" type="submit">Edit label</button>
                         </form>
