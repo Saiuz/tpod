@@ -1,3 +1,4 @@
+import random
 from flask import Blueprint, render_template, abort, redirect
 from flask_login import LoginManager, login_required, login_user, logout_user, current_user
 from flask import request, url_for, jsonify, Response, flash
@@ -151,19 +152,39 @@ def add_labeled_zip(video_name, zip_file_path):
     turkic_replacement.load_labeled_sample(video_name, valid_sample_list, extract_path, zip_file_path, current_user.id)
     return True
 
-# TODO: clean this export function
-# @video_page.route("/export", methods=["GET"])
-# @login_required
-# def export():
-#     if request.args.get('video_id', None):
-#         video_id = request.args.get('video_id')
-#         video = Video.query.filter(Video.id == video_id).first()
-#         if video is None:
-#             return 'Video not exist'
 
-#         video_name = video.slug
-#         target_folder = 'tmp'
-#         export_label.export_zip(video_name, target_folder)
-#         target_file_path = 'tmp/label_export.zip'
-#         return send_file(target_file_path)
-#     return 'Please specify video_id'
+def export_zip(video_name, target_folder): 
+    if not os.path.exists(target_folder):
+        os.makedirs(target_folder)
+    else:
+        # clear the folder
+        shutil.rmtree(target_folder)
+        os.makedirs(target_folder)
+
+    cmd = [video_name, "-o", target_folder, "--pascal"]
+    dump(cmd)
+    print 'Creating zip ball ...'
+    zipf = zipfile.ZipFile(target_folder + '/label_export.zip', 'w', zipfile.ZIP_DEFLATED)
+    zipdir(target_folder, zipf)
+    zipf.close()
+    print 'The exported file created, it is under the specified folder, and the name is label_export.zip'
+
+
+@video_page.route("/export", methods=["GET"])
+@login_required
+def export():
+    if request.args.get('video_id', None):
+        video_id = request.args.get('video_id')
+        video = Video.query.filter(Video.id == video_id).first()
+        if video is None:
+            flash('No such video found.', 'danger')
+            return redirect(request.referrer)
+        target_folder = os.path.join('/tmp', '{}_{}'.format('export', str(random.getrandbits(32))))
+        output_file_path = turkic_replacement.dump_pascal(video_id, target_folder)
+        if os.path.exists(output_file_path) and os.path.isfile(output_file_path):
+            return send_file(output_file_path, as_attachment=True, attachment_filename='export_{}.zip'.format(os.path.splitext(video.slug)[0]))
+        else:
+            flash('Something went wrong when exporting labels.', 'danger')
+            return redirect(request.referrer)            
+    flash('No such video found.', 'danger')
+    return redirect(request.referrer)

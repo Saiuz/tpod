@@ -12,9 +12,7 @@
             <th class="table_center">Labels</th>
             <th class="table_center">Labeling Jobs</th>
             <th class="table_center">Delete Video</th>
-<!--
-            <th class="table_center">Download Video</th>
--->
+            <th class="table_center">Export Video With Labels</th>
         </tr>
         </thead>
         <tbody>
@@ -77,17 +75,13 @@
                     <button class="btn btn-danger" type="submit">Delete Video</button>
                 </form>
             </td>
-<!--
             <td class="table_center table_download">
-                Export the Labeled Video
-                (this will be in pascal format, you will receive a zip ball containing both images (under JPEGImages folder) and annotations (under Annotations folder))
-
+                Export Labeled Video in Pascal VOC format
                 <form class="item_export_video" action="export" method="get" target="_blank">
                     <input hidden name="video_id" value="{{video.id}}">
                     <button class="btn" type="submit">Export Video</button>
                 </form>
             </td>
--->
         </tr>
         {% endfor%}
         </tbody>

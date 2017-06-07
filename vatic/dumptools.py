@@ -7,7 +7,6 @@ import numpy as np
 import merge
 from xml.etree import ElementTree
 from models import Path, Video
-import pdb
 
 """
 This module dumps data as the desired file type.
@@ -405,7 +404,7 @@ def dumppascal(folder, video, data, difficultthresh, skip, negdir):
         filename = "{0}/Annotations/{1}.xml".format(folder, strframe)
         file = open(filename, "w")
         file.write("<annotation>")
-        file.write("<folder>{0}</folder>".format(folder))
+        file.write("<folder>../JPEGImages</folder>")
         file.write("<filename>{0}.jpg</filename>".format(strframe))
 
         isempty = True
@@ -444,12 +443,12 @@ def dumppascal(folder, video, data, difficultthresh, skip, negdir):
             # since there are no objects for this frame,
             # we need to fabricate one
             file.write("<object>")
-            file.write("<name>not-a-real-object</name>")
+            file.write("<name>unlabeled</name>")
             file.write("<bndbox>")
-            file.write("<xmax>10</xmax>")
-            file.write("<xmin>20</xmin>")
-            file.write("<ymax>30</ymax>")
-            file.write("<ymin>40</ymin>")
+            file.write("<xmax>-1</xmax>")
+            file.write("<xmin>-1</xmin>")
+            file.write("<ymax>-1</ymax>")
+            file.write("<ymin>-1</ymin>")
             file.write("</bndbox>")
             file.write("<difficult>1</difficult>")
             file.write("<occluded>1</occluded>")

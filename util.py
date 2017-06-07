@@ -223,3 +223,10 @@ def shortcache(view):
         return response
         
     return update_wrapper(no_cache, view) 
+
+
+def zipdir(path, ziph):
+    # ziph is zipfile handle
+    for root, dirs, files in os.walk(path):
+        for file in files:
+            ziph.write(os.path.join(root, file))

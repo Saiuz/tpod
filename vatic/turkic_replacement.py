@@ -1,6 +1,7 @@
 import time
 import random
 import math
+import zipfile
 
 import cv2
 
@@ -14,7 +15,7 @@ import xml.etree.ElementTree as ET
 from vision import ffmpeg
 import m_logger
 from extensions import db
-
+import dumptools
 
 logger = m_logger.get_logger(os.path.basename(__file__))
 
@@ -429,6 +430,18 @@ def generate_frame_label(frame_labels):
         return line
 
 
+def getdata(video_id):
+    video = Video.query.filter(Video.id == video_id)
+    if video.count() == 0:
+        print "Video {0} does not exist!".format(video_id)
+        raise SystemExit()
+    video = video.one()
+    groundplane = False
+    mergemethod = merge.getpercentoverlap(groundplane)
+    merge_threshold = 0.5
+    return video, get_merged_data(video, True, mergemethod, merge_threshold, False)
+
+
 def dump_image_and_label_files(video_ids, label_name_array, remove_none_frame=False):
     if not os.path.exists(config.IMAGE_LIST_PATH):
         os.makedirs(config.IMAGE_LIST_PATH)
@@ -444,16 +457,6 @@ def dump_image_and_label_files(video_ids, label_name_array, remove_none_frame=Fa
     label_name_path = config.LABEL_NAME_PATH + timestamp + '.txt'
 
     session = db.session
-    def getdata(video_id):
-        video = session.query(Video).filter(Video.id == video_id)
-        if video.count() == 0:
-            print "Video {0} does not exist!".format(video_id)
-            raise SystemExit()
-        video = video.one()
-        groundplane = False
-        mergemethod = merge.getpercentoverlap(groundplane)
-        merge_threshold = 0.5
-        return video, get_merged_data(video, True, mergemethod, merge_threshold, False)
 
     image_list_array = []
     label_list_array = []
@@ -773,3 +776,29 @@ def load_labeled_sample(video_name, valid_sample_list, video_path_output, orig_f
                     session.add(box)
     session.commit()
 
+
+def dump_pascal(video_id, target_folder):
+    if not os.path.exists(target_folder):
+        os.makedirs(target_folder)
+    else:
+        # clear the folder
+        shutil.rmtree(target_folder)
+        os.makedirs(target_folder)
+
+    video, data = getdata(video_id)
+
+    print "Dumping video {0}".format(video.slug)
+    scale = 1.0
+    for track in data:
+        track.boxes = [x.transform(scale) for x in track.boxes]
+
+    dumpformat = dumptools.DEFAULT_FORMAT
+    dumptools.dumppascal(target_folder, video, data, 0, 1, None)
+    logger.debug('Creating zip ball ...')
+    zip_file_base_name = '{}_zipped'.format(target_folder)
+    zip_file_path = shutil.make_archive(zip_file_base_name, 'zip', target_folder)
+    # zipf = zipfile.ZipFile(zip_file_path, 'w', zipfile.ZIP_DEFLATED)
+    # util.zipdir(target_folder, zipf)
+    # zipf.close()
+    logger.debug('The exported file created at {}'.format(zip_file_path))
+    return zip_file_path
