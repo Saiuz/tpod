@@ -15,6 +15,7 @@ TPOD is your one stop shop for instance object detection.
 5. When the training is finsihed, you can upload sample test images to get a feeling on how well the classifier is working by going to the "detection" column in the classifier management page.
 6. Export the container image to integrate it with your own application
 
+(An old instructional video is [here](https://youtu.be/S-zovh8yUcQ). The overall workflow stayed the same.)
 
 ## Installation
 
