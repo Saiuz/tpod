@@ -29,9 +29,13 @@ Current TPOD can only run on a machine with a GPU.
 git clone https://github.com/junjuew/TPOD.git
 cd TPOD
 ```
-3. Copy env-template.sh into env.sh. Customize your configuration.
+3. Copy env-template.sh into env.sh. Customize your configuration. CONTAINER_REGISTRY_URL should be a docker container registry. It is where the trained object detector image will be pushed into.
 ```
 cp env-template.sh env.sh
+```
+5. Pull the faster-rcnn container base image. TPOD uses the base image to fine-tune the faster-rcnn object detection model.
+```
+docker pull registry.cmusatyalab.org/junjuew/container-registry:faster-rcnn-primitive
 ```
 4. Run the installation script. It only supports ubuntu and is only tested on 14.04 right now. The installation script installs system packages including mysql, opencv and rabbitmq. The python dependencies are installed into a virtualenv named "env" under current directory.
 ```
