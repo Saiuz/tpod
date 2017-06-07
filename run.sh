@@ -1,7 +1,6 @@
-export FLASK_APP=app.py
-export FLASK_DEBUG=1
+#!/bin/bash -ex
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-flask run --host=128.2.209.246
-
-unset FLASK_DEBUG
-unset FLASK_APP
+cd $DIR
+./runcelery.py -A celery_tasks worker --loglevel=info &
+env/bin/gunicorn -b 0.0.0.0:10000 app:app --log-level=debug --timeout=10000 
