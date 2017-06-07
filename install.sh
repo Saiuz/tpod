@@ -12,6 +12,7 @@ virtualenv --system-site-packages env # use system-site opencv package
 
 # these are dependencies for packages built from git
 # pip 2 pass installation doesn't work well
+pip install -U pip
 pip install cython==0.20
 pip install numpy==1.12.1
 pip install -r requirements.txt
