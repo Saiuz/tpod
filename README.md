@@ -1,46 +1,49 @@
 # TPOD (A Tool for Painless Object Detection)
+-----------------
 
 TPOD, a tool for painless object detection, is a web-based system that simplifies and streamlines the process of creating DNN-based highly accurate object detectors. It helps application developers with no prior computer vision background to quickly collect training images, label them, and train object detector. 
 
-TPOD is your one stop shop for object detection. 
+TPOD is your one stop shop for instance object detection. 
 
 
+## Usage
 
-# Q & A
-=========================
+1. Record multiple videos of ~30 seconds capturing the object you want to create an object detector for. Videos capturing the object under different view points, lighting conditions, scale, and with negative examples in your use case work better.
+2. Upload the videos to TPOD on the video management page.
+3. Add labels, specifying the name of the object for each video.
+4. Go to classifier management, select training videos, and launch training.
+5. When the training is finsihed, you can upload sample test images to get a feeling on how well the classifier is working by going to the "detection" column in the classifier management page.
+6. Export the container image to integrate it with your own application
 
+(An old instructional video is [here](https://youtu.be/S-zovh8yUcQ). The overall workflow stayed the same.)
 
+## Installation
 
-## What if I want to change the database model? 
-1. Make the change
-2. (Under the tpod root folder) python app.py db migrate 
-3. (Under the tpod root folder) python app.py db upgrade
+Current TPOD can only run on a machine with a GPU.
 
+1. Install these Dependencies for your platform
+   * NVIDIA Driver
+   * Docker
+   * [NVIDIA-docker](https://github.com/NVIDIA/nvidia-docker)
+2. 
+```
+git clone https://github.com/junjuew/TPOD.git
+cd TPOD
+```
+3. Copy env-template.sh into env.sh. Customize your configuration. CONTAINER_REGISTRY_URL should be a docker container registry. It is where the trained object detector image will be pushed into.
+```
+cp env-template.sh env.sh
+```
+5. Pull the faster-rcnn container base image. TPOD uses the base image to fine-tune the faster-rcnn object detection model.
+```
+docker pull registry.cmusatyalab.org/junjuew/container-registry:faster-rcnn-primitive
+```
+4. Run the installation script. It only supports ubuntu and is only tested on 14.04 right now. The installation script installs system packages including mysql, opencv and rabbitmq. The python dependencies are installed into a virtualenv named "env" under current directory.
+```
+./install.sh
+```
 
-## How to export labeled videos and import videos from other platform?
-
-Good question, we support that!
-
-1. Ensure that you are using our tools on either TPOD (through our web interface) or on cloudlet 001 through commandline
-2. Ensure that you have completely labeled the video
-
-Export on TPOD:
-* There is a 'Export Video' button on video management page (on the very right column of that page)
-* You can click on that button, then you will get a zip ball, it contains all images and annotations for that video, and it's in PASCAL format
-
-Import on TPOD:
-* If you are using TPOD or our commandline tool (export.py, will be explained later), you will get a zip ball, just upload that zip ball on the video upload interface, and check the checkbox to indicate that it's a labeled sample 
-* After uploading the labeled zip ball, there should be a labaled video on the web page
-* There are several things to mention about that video. First, it will not be resized, thus it's in the original size as those in your zip ball; 2. there will be no tracking related with each annotation (in TPOD of vatic, there exist a tracking mechanism, which only record critical frames, thus greatly reduce the box records), this might brings in an issue, since each frame contains actual label, the frontend might takes a while to load these labels, then on Vatic labeling page, you will have to wait longer before it's loaded 
-
-Export through commandline
-* On cloudlet001, there is a 'export_label.py' under folder '/home/suanmiao/workspace/tpod_export', you can use that file to export labeled file, the result is the same as that from TPOD
-* First, you have to ensure that the virtual environment (under folder '/home/junjuew/object-detection-web/demo-web/flask') is activated
-* Second, ensure that other python files under my folder ('/home/suanmiao/workspace/tpod_export') is also under you execution dir, thus you can directly copy all files under that folder to your working dir and execute it, it should ensure the correctness
-* There are two parameters 'video' and 'target_folder'. 'video' is the actual video name for the video stored in DB, thus it will depend on the actual implementation, under Junjue's TPOD, the name should be userid_videoname, for example '3_dummy_video_1.mp4', the result will be stored in the target folder, more instructions will be displayed during your execution
-
-
-### Usage of generated TPOD container image
+## Usage of generated TPOD container image
 
 #### Running as a standalone HTTP server
 
