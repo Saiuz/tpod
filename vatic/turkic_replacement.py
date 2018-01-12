@@ -802,3 +802,18 @@ def dump_pascal(video_id, target_folder):
     # zipf.close()
     logger.debug('The exported file created at {}'.format(zip_file_path))
     return zip_file_path
+
+
+def dump_text(video_id, target_folder):
+    if not os.path.exists(target_folder):
+        os.makedirs(target_folder)
+
+    video, data = getdata(video_id)
+
+    print "Dumping video {0}".format(video.slug)
+
+    dumpformat = dumptools.DEFAULT_FORMAT.split()
+    output_file_path = os.path.join(target_folder, os.path.splitext(video.slug)[0])
+    with open(output_file_path, 'wb') as f:
+        dumptools.dumptext(f, data, False, dumpformat)
+    print "finished"

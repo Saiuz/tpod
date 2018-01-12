@@ -237,9 +237,9 @@ def dumptext(file, data, groundplane, fields):
     def printdata(d, f):
         if type(d) is int:
             f.write(str(d))
-        elif type(d) is str:
+        elif type(d) is str or type(d) is unicode:
             f.write("\"")
-            f.write(d)
+            f.write(str(d))
             f.write("\"")
         elif type(d) is list:
             [printdata(x, f) for x in d]

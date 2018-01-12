@@ -19,7 +19,7 @@ import response_util
 import import_label
 #import export_label
 from flask import send_file
-
+import json
 
 video_page = Blueprint('video_page', __name__, url_prefix='/video', template_folder='templates',
                        static_url_path='/static', static_folder='static')
@@ -188,3 +188,19 @@ def export():
             return redirect(request.referrer)            
     flash('No such video found.', 'danger')
     return redirect(request.referrer)
+
+
+# added backdoor for dumping all videos    
+@video_page.route("/export_text", methods=["GET"])
+@login_required
+def export_text():
+    videos_info = db_helper.get_videos_of_user(current_user.id)
+    print 'get %s videos for user %s ' % (str(len(videos_info)), str(current_user.id))
+    for video_info in videos_info:
+        video_id = video_info['id']
+        video = Video.query.filter(Video.id == video_id).first()
+        if video is None:
+            raise ValueError('Video not found :{}'.format(video.id))
+        target_folder = os.path.join('/tmp', 'export_test')
+        turkic_replacement.dump_text(video_id, target_folder)
+    return json.dump('success')
