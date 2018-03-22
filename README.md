@@ -28,9 +28,10 @@ Current TPOD can only run on a machine with a GPU.
    pip install cython numpy
    ```
    * Vatic
-   ```bash
-   sudo apt-get install python-setuptools python-dev libavcodec-dev libavformat-dev libswscale-dev libjpeg62 libjpeg62-dev libfreetype6 libfreetype6-dev mysql-server-5.5 mysql-client-5.5 libmysqlclient-dev gfortran
-   ```
+       * install vatic dependencies
+       ```bash
+         sudo apt-get install python-setuptools python-dev libavcodec-dev libavformat-dev libswscale-dev libjpeg62 libjpeg62-dev libfreetype6 libfreetype6-dev mysql-server-5.5 mysql-client-5.5 libmysqlclient-dev gfortran
+       ```
        * mysql> CREATE USER ‘vatic'@'localhost' IDENTIFIED BY ‘vatic';
        * execute db_util.install() in python under the project root folder first, this will initialize all database models related with tpod
        ```python
