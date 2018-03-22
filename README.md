@@ -22,13 +22,25 @@ TPOD is your one stop shop for instance object detection.
 Current TPOD can only run on a machine with a GPU.
 
 1. Install these Dependencies for your platform
+   * OpenCV
+   * Cython and numpy
+    ```
+   pip install cython numpy
+   ```
+   * Vatic
+   ```bash
+   sudo apt-get install python-setuptools python-dev libavcodec-dev libavformat-dev libswscale-dev libjpeg62 libjpeg62-dev libfreetype6 libfreetype6-dev mysql-server-5.5 mysql-client-5.5 libmysqlclient-dev gfortran
+   ```
+       * mysql> CREATE USER ‘vatic'@'localhost' IDENTIFIED BY ‘vatic';
+       * execute db_util.install() in python under the project root folder first, this will initialize all database models related with tpod
+       ```python
+       import db_util
+       db_util.install()
+       ```
+
    * NVIDIA Driver
    * Docker
    * [NVIDIA-docker](https://github.com/NVIDIA/nvidia-docker)
-   * Cython and numpy
-   ```
-   pip install cython numpy
-   ```
 2. 
 ```
 git clone https://github.com/junjuew/TPOD.git
