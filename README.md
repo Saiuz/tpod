@@ -99,3 +99,34 @@ Example:
 * Label file is at: '/train/labels.txt'
 * Training Image Set file is at: '/train/image_set.txt'
 * Training Annotation file is at: '/train/label_set.txt'
+
+## Sample Training Dataset
+There are 3 files needed for the training: image_list, label_list, label_name; They are all stored under folder 'dataset', and it's shared to all docker containers through data volume
+* Image_list: this contains the list of file path for all images, each line represent one frame
+* Label_list: this contains the actual bounding box for labels in each frame, each line represent the label for one frame, and it's organized in three levels:
+    * Classes are separated by dot '.'
+    * Bounding boxes under that class are separated by semicolon ';'
+    * Coordinates for the box (since there are two x, two y for each box) are separated by comma ';'
+Thus here is a sample for the label for one frame, it contains two classes (we call them 'A' and 'B'), which have 2 and 3 boxes (we call them 'A1', 'A2', 'B1', 'B2', 'B3') respectively, and they have coordinates (x, y, w, h):
+* A1: [101, 201, 10, 20] 
+* A2: [102, 202, 10, 20]
+* B1: [103, 203, 10, 20]
+* B2: [104, 204, 10, 20]
+* B3: [105, 205, 10, 20]
+
+Then the label for that frame looks like this 
+>> 101,201,10,20;102,202,10,20.103,203,10,20;104,204,10,20;105,205,10,20
+
+
+# Q & A
+=========================
+
+## What if I want to change the database model? 
+1. Make the change
+2. (Under the tpod root folder) python app.py db migrate 
+3. (Under the tpod root folder) python app.py db upgrade
+
+
+
+
+
