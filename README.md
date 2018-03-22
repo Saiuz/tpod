@@ -25,6 +25,10 @@ Current TPOD can only run on a machine with a GPU.
    * NVIDIA Driver
    * Docker
    * [NVIDIA-docker](https://github.com/NVIDIA/nvidia-docker)
+   * Cython and numpy
+   ```
+   pip install cython numpy
+   ```
 2. 
 ```
 git clone https://github.com/junjuew/TPOD.git
