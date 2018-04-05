@@ -38,7 +38,7 @@ docker pull registry.cmusatyalab.org/junjuew/container-registry:faster-rcnn-prim
 ```
 ./install.sh
 ```
-5. To run, copy and customize run-template.sh into run.sh.
+5. To run, copy and customize run-template.sh into run.sh. TPOD is listening on port 10000 by default.
 ```
 cp run-template.sh run.sh
 ./run.sh
