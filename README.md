@@ -19,45 +19,29 @@ TPOD is your one stop shop for instance object detection.
 
 ## Installation
 
-Current TPOD can only run on a machine with a GPU.
+We provide an installation script install.sh for ubuntu 14.04 and 16.04. Current TPOD backend can only run on a machine with a GPU.
 
-1. Install these Dependencies for your platform
-   * OpenCV
-   * Cython and numpy
-    ```
-   pip install cython numpy
-   ```
-   * Vatic
-       * install vatic dependencies
-       ```bash
-         sudo apt-get install python-setuptools python-dev libavcodec-dev libavformat-dev libswscale-dev libjpeg62 libjpeg62-dev libfreetype6 libfreetype6-dev mysql-server-5.5 mysql-client-5.5 libmysqlclient-dev gfortran
-       ```
-       * mysql> CREATE USER ‘vatic'@'localhost' IDENTIFIED BY ‘vatic';
-       * execute db_util.install() in python under the project root folder first, this will initialize all database models related with tpod
-       ```python
-       import db_util
-       db_util.install()
-       ```
-
-   * NVIDIA Driver
-   * Docker
-   * [NVIDIA-docker](https://github.com/NVIDIA/nvidia-docker)
-2. 
+1. 
 ```
 git clone https://github.com/junjuew/TPOD.git
 cd TPOD
 ```
-3. Copy env-template.sh into env.sh. Customize your configuration. CONTAINER_REGISTRY_URL should be a docker container registry. It is where the trained object detector image will be pushed into.
+2. Copy env-template.sh into env.sh. Customize your configuration. TPOD will create an admin user specified by DEFAULT_USER and DEFAULT_USER_PASSWORD. You'll need this username and password to login. CONTAINER_REGISTRY_URL should be a docker container registry. It is where the trained object detector image will be pushed into.
 ```
 cp env-template.sh env.sh
 ```
-5. Pull the faster-rcnn container base image. TPOD uses the base image to fine-tune the faster-rcnn object detection model.
+3. Pull the faster-rcnn container base image. TPOD uses the base image to fine-tune the faster-rcnn object detection model.
 ```
 docker pull registry.cmusatyalab.org/junjuew/container-registry:faster-rcnn-primitive
 ```
 4. Run the installation script. It only supports ubuntu and is only tested on 14.04 right now. The installation script installs system packages including mysql, opencv and rabbitmq. The python dependencies are installed into a virtualenv named "env" under current directory.
 ```
 ./install.sh
+```
+5. To run, copy and customize run-template.sh into run.sh.
+```
+cp run-template.sh run.sh
+./run.sh
 ```
 
 ## Usage of generated TPOD container image
