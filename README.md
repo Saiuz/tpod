@@ -34,7 +34,7 @@ cp env-template.sh env.sh
 ```
 docker pull registry.cmusatyalab.org/junjuew/container-registry:faster-rcnn-primitive
 ```
-4. Run the installation script. It only supports ubuntu and is only tested on 14.04 right now. The installation script installs system packages including mysql, opencv and rabbitmq. The python dependencies are installed into a virtualenv named "env" under current directory.
+4. Run the installation script. It only supports ubuntu right now. The installation script installs system packages including mysql, opencv and rabbitmq. The python dependencies are installed into a virtualenv named "env" under current directory.
 ```
 ./install.sh
 ```
