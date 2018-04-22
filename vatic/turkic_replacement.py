@@ -4,6 +4,9 @@ import math
 import zipfile
 
 import cv2
+import imagehash
+from PIL import Image
+from logzero import logger
 
 from models import *
 from tpod_models import *
@@ -433,12 +436,12 @@ def generate_frame_label(frame_labels):
 def getdata(video_id):
     video = Video.query.filter(Video.id == video_id)
     if video.count() == 0:
-        print "Video {0} does not exist!".format(video_id)
-        raise SystemExit()
+        raise ValueError("Video id ({0}) does not exist!".format(video_id))
     video = video.one()
     groundplane = False
     mergemethod = merge.getpercentoverlap(groundplane)
     merge_threshold = 0.5
+    # TODO: doesn't really need to merge the path. change the domerge=False
     return video, get_merged_data(video, True, mergemethod, merge_threshold, False)
 
 
@@ -777,32 +780,204 @@ def load_labeled_sample(video_name, valid_sample_list, video_path_output, orig_f
     session.commit()
 
 
-def dump_pascal(video_id, target_folder):
-    if not os.path.exists(target_folder):
-        os.makedirs(target_folder)
+##############################################
+# Export related
+##############################################
+DEFAULT_FORMAT = "id xtl ytl xbr ybr frame lost occluded generated label attributes"
+
+def create_or_clear_directory(directory):
+    if not os.path.exists(directory):
+        os.makedirs(directory)
     else:
-        # clear the folder
-        shutil.rmtree(target_folder)
-        os.makedirs(target_folder)
+        shutil.rmtree(directory)
+        os.makedirs(directory)
+
+def create_pascal_directory_structure(directory):
+    try:
+        os.makedirs("{0}/Annotations".format(directory))
+    except:
+        pass
+    try:
+        os.makedirs("{0}/ImageSets/Main/".format(directory))
+    except:
+        pass
+    try:
+        os.makedirs("{0}/JPEGImages/".format(directory))
+    except:
+        pass
+
+def get_manually_labeled_frame_ids(video):
+    """Get manually labled frame ids in the video."""
+    _, data = getdata(video.id)
+    frame_ids = set()
+    for track in data:
+        for box in track.boxes:
+            if box.lost or box.generated:
+                continue
+            # found manually labled box
+            frame_ids.add(box.frame)
+    return sorted(list(frame_ids))
+
+def get_perceptual_hash_different_frame_ids(video,
+                                            min_hash_difference_between_key_frames=5):
+    """Get the ids of frames whose perceptual hash value are quite different."""
+    base_frame_hash = None
+    frame_ids = []
+    for frame_id in range(video.totalframes):
+        img_path = Video.getframepath(frame_id, video.extract_path)
+        img = Image.open(img_path)
+        img_hash = imagehash.phash(img)
+        if base_frame_hash is None or (
+                img_hash - base_frame_hash >= min_hash_difference_between_key_frames):
+           frame_ids.append(frame_id)
+           base_frame_hash = img_hash
+        img.close()
+    return frame_ids
+
+def get_key_frame_ids(video):
+    """Identify key frames in the video.
+
+    Key frames need to satify one of following two criteria:
+       1. Manual Labeled frame
+       2. Perceptual hash is quite different from previous key frames
+    """
+    manually_labled_frame_ids = get_manually_labeled_frame_ids(video)
+    perceptual_hash_different_frame_ids = get_perceptual_hash_different_frame_ids(video)
+    key_frame_ids = set(manually_labled_frame_ids) | set(perceptual_hash_different_frame_ids)
+    logger.debug(
+        "Key frame selection results: \n {0} of {1} frames are manually labeled \n {2} of {1} have large pHash difference".format(
+            len(manually_labled_frame_ids),
+            video.totalframes,
+            len(perceptual_hash_different_frame_ids)))
+    return sorted(list(key_frame_ids))
+
+def dump_pascal(video_id, target_folder):
+    create_or_clear_directory(target_folder)
+    create_pascal_directory_structure(target_folder)
 
     video, data = getdata(video_id)
-
     print "Dumping video {0}".format(video.slug)
-    scale = 1.0
-    for track in data:
-        track.boxes = [x.transform(scale) for x in track.boxes]
-
-    dumpformat = dumptools.DEFAULT_FORMAT
-    dumptools.dumppascal(target_folder, video, data, 0, 1, None)
+    export_video_pascal(target_folder, video, data)
     logger.debug('Creating zip ball ...')
     zip_file_base_name = '{}_zipped'.format(target_folder)
-    zip_file_path = shutil.make_archive(zip_file_base_name, 'zip', target_folder)
-    # zipf = zipfile.ZipFile(zip_file_path, 'w', zipfile.ZIP_DEFLATED)
-    # util.zipdir(target_folder, zipf)
-    # zipf.close()
+    zip_file_path = shutil.make_archive(zip_file_base_name, 'zip', *os.path.split(target_folder))
     logger.debug('The exported file created at {}'.format(zip_file_path))
     return zip_file_path
 
+def export_video_pascal(folder, video, data, difficultthresh=0, key_frame_only=True):
+    get_strframe = lambda frame: "{}_{}_{}".format(video.id, video.slug, str(frame+1).zfill(10))
+
+    # find the frame ids to export
+    frames_to_export = range(0, video.totalframes)
+    # filter by key frames
+    if key_frame_only:
+        frames_to_export = get_key_frame_ids(video)
+    # filter by annotation. The frames to be exported need to have annotations
+    annotation_by_frame = {}
+    for track in data:
+        for box in track.boxes:
+            if box.frame in frames_to_export:
+                if box.frame not in annotation_by_frame:
+                    annotation_by_frame[box.frame] = []
+                annotation_by_frame[box.frame].append((box, track))
+    frames_to_export = sorted(annotation_by_frame.keys())
+
+    hasit = {}
+
+    logger.debug(
+        "Export in pascal format: writing annotations from video {} to {}".format(video, folder))
+
+    for frame in frames_to_export:
+        boxes = annotation_by_frame[frame]
+        strframe = get_strframe(frame)
+        filename = "{}/Annotations/{}.xml".format(folder, strframe)
+        file = open(filename, "w")
+        file.write("<annotation>")
+        file.write("<folder>JPEGImages</folder>")
+        file.write("<filename>{0}.jpg</filename>".format(strframe))
+
+        isempty = True
+        for box, track in boxes:
+            if box.lost:
+                continue
+
+            isempty = False
+
+            if track.label not in hasit:
+                hasit[track.label] = set()
+            hasit[track.label].add(frame)
+
+            difficult = box.area < difficultthresh
+            difficult = int(difficult)
+
+            file.write("<object>")
+            file.write("<name>{0}</name>".format(track.label))
+            file.write("<bndbox>")
+            file.write("<xmax>{0}</xmax>".format(box.xbr))
+            file.write("<xmin>{0}</xmin>".format(box.xtl))
+            file.write("<ymax>{0}</ymax>".format(box.ybr))
+            file.write("<ymin>{0}</ymin>".format(box.ytl))
+            file.write("</bndbox>")
+            file.write("<difficult>{0}</difficult>".format(difficult))
+            file.write("<occluded>{0}</occluded>".format(box.occluded))
+            file.write("<pose>Unspecified</pose>")
+            file.write("<truncated>0</truncated>")
+            file.write("</object>")
+
+        file.write("<segmented>0</segmented>")
+        file.write("<size>")
+        file.write("<depth>3</depth>")
+        file.write("<height>{0}</height>".format(video.height))
+        file.write("<width>{0}</width>".format(video.width))
+        file.write("</size>")
+        file.write("<source>")
+        file.write("<annotation>{0}</annotation>".format(video.slug))
+        file.write("<database>vatic</database>")
+        file.write("<image>TPOD</image>")
+        file.write("</source>")
+        file.write("<owner>")
+        file.write("<flickrid>TPOD</flickrid>")
+        file.write("<name>TPOD</name>")
+        file.write("</owner>")
+        file.write("</annotation>")
+        file.close()
+
+    logger.debug("{0} of {1} frames are exported".format(len(frames_to_export), video.totalframes))
+
+    logger.debug("Writing image sets...")
+    for label, frames in hasit.items():
+        filename = "{0}/ImageSets/Main/{1}_trainval.txt".format(folder,
+                                                                label)
+        file = open(filename, "a+")
+        for frame in frames_to_export:
+            file.write(get_strframe(frame))
+            file.write(" ")
+            if frame in frames:
+                file.write("1")
+            else:
+                file.write("-1")
+            file.write("\n")
+
+        file.close()
+        train = "{0}/ImageSets/Main/{1}_train.txt".format(folder, label)
+        shutil.copyfile(filename, train)
+
+    filename = "{0}/ImageSets/Main/trainval.txt".format(folder)
+    file = open(filename, "a+")
+    file.write("\n".join(get_strframe(frame) for frame in frames_to_export))
+    file.close()
+
+    train = "{0}/ImageSets/Main/train.txt".format(folder)
+    shutil.copyfile(filename, train)
+
+    logger.debug("Writing JPEG frames...")
+    for frame in frames_to_export:
+        strframe = get_strframe(frame)
+        path = Video.getframepath(frame, video.extract_path)
+        dest = "{0}/JPEGImages/{1}.jpg".format(folder, strframe)
+        shutil.copyfile(path, dest)
+
+    logger.debug("Done.")
 
 def dump_text(video_id, target_folder):
     if not os.path.exists(target_folder):

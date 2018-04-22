@@ -47,6 +47,7 @@ def export_zip(video_name, target_folder):
         os.makedirs(target_folder)
 
     cmd = [video_name, "-o", target_folder, "--pascal"]
+    import pdb; pdb.set_trace()
     dump(cmd)
     print 'Creating zip ball ...'
     zipf = zipfile.ZipFile(target_folder + '/label_export.zip', 'w', zipfile.ZIP_DEFLATED)

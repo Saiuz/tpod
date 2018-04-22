@@ -180,6 +180,7 @@ def export():
             flash('No such video found.', 'danger')
             return redirect(request.referrer)
         target_folder = os.path.join('/tmp', '{}_{}'.format('export', str(random.getrandbits(32))))
+        import pdb; pdb.set_trace()
         output_file_path = turkic_replacement.dump_pascal(video_id, target_folder)
         if os.path.exists(output_file_path) and os.path.isfile(output_file_path):
             return send_file(output_file_path, as_attachment=True, attachment_filename='export_{}.zip'.format(os.path.splitext(video.slug)[0]))
