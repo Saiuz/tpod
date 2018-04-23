@@ -806,6 +806,14 @@ def create_pascal_directory_structure(directory):
     except:
         pass
 
+def zip_and_remove_directory(directory):
+    """Zip directory and then remove the dir."""
+    zip_file_base_name = '{}_zipped'.format(directory)
+    zip_file_path = shutil.make_archive(zip_file_base_name, 'zip', *os.path.split(directory))
+    logger.debug('The exported file created at {}'.format(zip_file_path))
+    shutil.rmtree(directory)
+    return zip_file_path
+
 def get_manually_labeled_frame_ids(video):
     """Get manually labled frame ids in the video."""
     _, data = getdata(video.id)
@@ -851,6 +859,7 @@ def get_key_frame_ids(video):
             len(perceptual_hash_different_frame_ids)))
     return sorted(list(key_frame_ids))
 
+
 def dump_pascal(video_id, target_folder):
     create_or_clear_directory(target_folder)
     create_pascal_directory_structure(target_folder)
@@ -858,13 +867,19 @@ def dump_pascal(video_id, target_folder):
     video, data = getdata(video_id)
     print "Dumping video {0}".format(video.slug)
     export_video_pascal(target_folder, video, data)
-    logger.debug('Creating zip ball ...')
-    zip_file_base_name = '{}_zipped'.format(target_folder)
-    zip_file_path = shutil.make_archive(zip_file_base_name, 'zip', *os.path.split(target_folder))
-    logger.debug('The exported file created at {}'.format(zip_file_path))
-    return zip_file_path
+    return zip_and_remove_directory(target_folder)
 
-def export_video_pascal(folder, video, data, difficultthresh=0, key_frame_only=True):
+def dump_pascal_multiple_videos(video_ids, target_folder):
+    create_or_clear_directory(target_folder)
+    create_pascal_directory_structure(target_folder)
+
+    for video_id in video_ids:
+        video, data = getdata(video_id)
+        print "Dumping video {0}".format(video.slug)
+        export_video_pascal(target_folder, video, data)
+    return zip_and_remove_directory(target_folder)
+
+def export_video_pascal(folder, video, data, difficultthresh=0, key_frame_only=True, eval_percent=0.1):
     get_strframe = lambda frame: "{}_{}_{}".format(video.id, video.slug, str(frame+1).zfill(10))
 
     # find the frame ids to export
@@ -891,10 +906,10 @@ def export_video_pascal(folder, video, data, difficultthresh=0, key_frame_only=T
         boxes = annotation_by_frame[frame]
         strframe = get_strframe(frame)
         filename = "{}/Annotations/{}.xml".format(folder, strframe)
-        file = open(filename, "w")
-        file.write("<annotation>")
-        file.write("<folder>JPEGImages</folder>")
-        file.write("<filename>{0}.jpg</filename>".format(strframe))
+        f = open(filename, "w")
+        f.write("<annotation>")
+        f.write("<folder>JPEGImages</folder>")
+        f.write("<filename>{0}.jpg</filename>".format(strframe))
 
         isempty = True
         for box, track in boxes:
@@ -910,37 +925,37 @@ def export_video_pascal(folder, video, data, difficultthresh=0, key_frame_only=T
             difficult = box.area < difficultthresh
             difficult = int(difficult)
 
-            file.write("<object>")
-            file.write("<name>{0}</name>".format(track.label))
-            file.write("<bndbox>")
-            file.write("<xmax>{0}</xmax>".format(box.xbr))
-            file.write("<xmin>{0}</xmin>".format(box.xtl))
-            file.write("<ymax>{0}</ymax>".format(box.ybr))
-            file.write("<ymin>{0}</ymin>".format(box.ytl))
-            file.write("</bndbox>")
-            file.write("<difficult>{0}</difficult>".format(difficult))
-            file.write("<occluded>{0}</occluded>".format(box.occluded))
-            file.write("<pose>Unspecified</pose>")
-            file.write("<truncated>0</truncated>")
-            file.write("</object>")
+            f.write("<object>")
+            f.write("<name>{0}</name>".format(track.label))
+            f.write("<bndbox>")
+            f.write("<xmax>{0}</xmax>".format(box.xbr))
+            f.write("<xmin>{0}</xmin>".format(box.xtl))
+            f.write("<ymax>{0}</ymax>".format(box.ybr))
+            f.write("<ymin>{0}</ymin>".format(box.ytl))
+            f.write("</bndbox>")
+            f.write("<difficult>{0}</difficult>".format(difficult))
+            f.write("<occluded>{0}</occluded>".format(box.occluded))
+            f.write("<pose>Unspecified</pose>")
+            f.write("<truncated>0</truncated>")
+            f.write("</object>")
 
-        file.write("<segmented>0</segmented>")
-        file.write("<size>")
-        file.write("<depth>3</depth>")
-        file.write("<height>{0}</height>".format(video.height))
-        file.write("<width>{0}</width>".format(video.width))
-        file.write("</size>")
-        file.write("<source>")
-        file.write("<annotation>{0}</annotation>".format(video.slug))
-        file.write("<database>vatic</database>")
-        file.write("<image>TPOD</image>")
-        file.write("</source>")
-        file.write("<owner>")
-        file.write("<flickrid>TPOD</flickrid>")
-        file.write("<name>TPOD</name>")
-        file.write("</owner>")
-        file.write("</annotation>")
-        file.close()
+        f.write("<segmented>0</segmented>")
+        f.write("<size>")
+        f.write("<depth>3</depth>")
+        f.write("<height>{0}</height>".format(video.height))
+        f.write("<width>{0}</width>".format(video.width))
+        f.write("</size>")
+        f.write("<source>")
+        f.write("<annotation>{0}</annotation>".format(video.slug))
+        f.write("<database>vatic</database>")
+        f.write("<image>TPOD</image>")
+        f.write("</source>")
+        f.write("<owner>")
+        f.write("<flickrid>TPOD</flickrid>")
+        f.write("<name>TPOD</name>")
+        f.write("</owner>")
+        f.write("</annotation>")
+        f.close()
 
     logger.debug("{0} of {1} frames are exported".format(len(frames_to_export), video.totalframes))
 
@@ -948,27 +963,38 @@ def export_video_pascal(folder, video, data, difficultthresh=0, key_frame_only=T
     for label, frames in hasit.items():
         filename = "{0}/ImageSets/Main/{1}_trainval.txt".format(folder,
                                                                 label)
-        file = open(filename, "a+")
+        f = open(filename, "a")
         for frame in frames_to_export:
-            file.write(get_strframe(frame))
-            file.write(" ")
+            f.write(get_strframe(frame))
+            f.write(" ")
             if frame in frames:
-                file.write("1")
+                f.write("1")
             else:
-                file.write("-1")
-            file.write("\n")
+                f.write("-1")
+            f.write("\n")
 
-        file.close()
+        f.close()
         train = "{0}/ImageSets/Main/{1}_train.txt".format(folder, label)
         shutil.copyfile(filename, train)
 
-    filename = "{0}/ImageSets/Main/trainval.txt".format(folder)
-    file = open(filename, "a+")
-    file.write("\n".join(get_strframe(frame) for frame in frames_to_export))
-    file.close()
+    def append_frame_path_to_file(filepath, frame_list, get_strframe_method=get_strframe):
+        f = open(filepath, "a")
+        if f.tell() > 0 and len(frames_to_export) > 0:
+            f.write("\n")
+        f.write("\n".join(get_strframe(frame) for frame in frame_list))
+        f.close()
 
-    train = "{0}/ImageSets/Main/train.txt".format(folder)
-    shutil.copyfile(filename, train)
+    filename = "{0}/ImageSets/Main/trainval.txt".format(folder)
+    append_frame_path_to_file(filename, frames_to_export)
+
+    filename = "{0}/ImageSets/Main/val.txt".format(folder)
+    eval_frames_to_export = sorted(random.sample(
+        frames_to_export, int(len(frames_to_export) * eval_percent)))
+    append_frame_path_to_file(filename, eval_frames_to_export)
+
+    filename = "{0}/ImageSets/Main/train.txt".format(folder)
+    train_frames_to_export = sorted(list(set(frames_to_export) - set(eval_frames_to_export)))
+    append_frame_path_to_file(filename, train_frames_to_export)
 
     logger.debug("Writing JPEG frames...")
     for frame in frames_to_export:

@@ -180,21 +180,20 @@ def export():
             flash('No such video found.', 'danger')
             return redirect(request.referrer)
         target_folder = os.path.join('/tmp', '{}_{}'.format('export', str(random.getrandbits(32))))
-        import pdb; pdb.set_trace()
         output_file_path = turkic_replacement.dump_pascal(video_id, target_folder)
         if os.path.exists(output_file_path) and os.path.isfile(output_file_path):
             return send_file(output_file_path, as_attachment=True, attachment_filename='export_{}.zip'.format(os.path.splitext(video.slug)[0]))
         else:
             flash('Something went wrong when exporting labels.', 'danger')
-            return redirect(request.referrer)            
+            return redirect(request.referrer)
     flash('No such video found.', 'danger')
     return redirect(request.referrer)
 
 
-# added backdoor for dumping all videos    
+# added backdoor for dumping all videos
 @video_page.route("/export_text", methods=["GET"])
 @login_required
-def export_text():
+def export_all_text():
     videos_info = db_helper.get_videos_of_user(current_user.id)
     print 'get %s videos for user %s ' % (str(len(videos_info)), str(current_user.id))
     for video_info in videos_info:
@@ -205,3 +204,18 @@ def export_text():
         target_folder = os.path.join('/tmp', 'export_test')
         turkic_replacement.dump_text(video_id, target_folder)
     return json.dump('success')
+
+# added backdoor for dumping all videos in pascal
+@video_page.route("/export_pascal", methods=["GET"])
+@login_required
+def export_all_pascal():
+    video_infos = db_helper.get_videos_of_user(current_user.id)
+    logger.debug('get %s videos for user %s ' % (str(len(video_infos)), str(current_user.id)))
+    video_ids = [video_info['id'] for video_info in video_infos]
+    target_folder = os.path.join('/tmp', '{}_{}'.format('export', str(random.getrandbits(32))))
+    output_file_path = turkic_replacement.dump_pascal_multiple_videos(video_ids, target_folder)
+
+    if os.path.exists(output_file_path) and os.path.isfile(output_file_path):
+        return send_file(output_file_path, as_attachment=True, attachment_filename='export_{}.zip'.format(os.path.splitext(current_user.username)[0]))
+    else:
+        return json.dump('Something went wrong when exporting labels.')
