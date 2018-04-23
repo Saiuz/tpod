@@ -19,28 +19,29 @@ TPOD is your one stop shop for instance object detection.
 
 ## Installation
 
-Current TPOD can only run on a machine with a GPU.
+We provide an installation script install.sh for ubuntu 14.04 and 16.04. Current TPOD backend can only run on a machine with a GPU.
 
-1. Install these Dependencies for your platform
-   * NVIDIA Driver
-   * Docker
-   * [NVIDIA-docker](https://github.com/NVIDIA/nvidia-docker)
-2. 
+1. 
 ```
 git clone https://github.com/junjuew/TPOD.git
 cd TPOD
 ```
-3. Copy env-template.sh into env.sh. Customize your configuration. CONTAINER_REGISTRY_URL should be a docker container registry. It is where the trained object detector image will be pushed into.
+2. Copy env-template.sh into env.sh. Customize your configuration. TPOD will create an admin user specified by DEFAULT_USER and DEFAULT_USER_PASSWORD. You'll need this username and password to login. CONTAINER_REGISTRY_URL should be a docker container registry. It is where the trained object detector image will be pushed into.
 ```
 cp env-template.sh env.sh
 ```
-5. Pull the faster-rcnn container base image. TPOD uses the base image to fine-tune the faster-rcnn object detection model.
+3. Pull the faster-rcnn container base image. TPOD uses the base image to fine-tune the faster-rcnn object detection model.
 ```
 docker pull registry.cmusatyalab.org/junjuew/container-registry:faster-rcnn-primitive
 ```
-4. Run the installation script. It only supports ubuntu and is only tested on 14.04 right now. The installation script installs system packages including mysql, opencv and rabbitmq. The python dependencies are installed into a virtualenv named "env" under current directory.
+4. Run the installation script. It only supports ubuntu right now. The installation script installs system packages including mysql, opencv and rabbitmq. The python dependencies are installed into a virtualenv named "env" under current directory.
 ```
 ./install.sh
+```
+5. To run, copy and customize run-template.sh into run.sh. TPOD is listening on port 10000 by default.
+```
+cp run-template.sh run.sh
+./run.sh
 ```
 
 ## Usage of generated TPOD container image
@@ -82,3 +83,34 @@ Example:
 * Label file is at: '/train/labels.txt'
 * Training Image Set file is at: '/train/image_set.txt'
 * Training Annotation file is at: '/train/label_set.txt'
+
+## Sample Training Dataset
+There are 3 files needed for the training: image_list, label_list, label_name; They are all stored under folder 'dataset', and it's shared to all docker containers through data volume
+* Image_list: this contains the list of file path for all images, each line represent one frame
+* Label_list: this contains the actual bounding box for labels in each frame, each line represent the label for one frame, and it's organized in three levels:
+    * Classes are separated by dot '.'
+    * Bounding boxes under that class are separated by semicolon ';'
+    * Coordinates for the box (since there are two x, two y for each box) are separated by comma ';'
+Thus here is a sample for the label for one frame, it contains two classes (we call them 'A' and 'B'), which have 2 and 3 boxes (we call them 'A1', 'A2', 'B1', 'B2', 'B3') respectively, and they have coordinates (x, y, w, h):
+* A1: [101, 201, 10, 20] 
+* A2: [102, 202, 10, 20]
+* B1: [103, 203, 10, 20]
+* B2: [104, 204, 10, 20]
+* B3: [105, 205, 10, 20]
+
+Then the label for that frame looks like this 
+>> 101,201,10,20;102,202,10,20.103,203,10,20;104,204,10,20;105,205,10,20
+
+
+# Q & A
+=========================
+
+## What if I want to change the database model? 
+1. Make the change
+2. (Under the tpod root folder) python app.py db migrate 
+3. (Under the tpod root folder) python app.py db upgrade
+
+
+
+
+
