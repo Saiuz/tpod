@@ -19,6 +19,7 @@ from vision import ffmpeg
 import m_logger
 from extensions import db
 import dumptools
+import db_helper
 
 logger = m_logger.get_logger(os.path.basename(__file__))
 
@@ -809,7 +810,7 @@ def create_pascal_directory_structure(directory):
 def zip_and_remove_directory(directory):
     """Zip directory and then remove the dir."""
     zip_file_base_name = '{}_zipped'.format(directory)
-    zip_file_path = shutil.make_archive(zip_file_base_name, 'zip', *os.path.split(directory))
+    zip_file_path = shutil.make_archive(zip_file_base_name, 'zip', directory)
     logger.debug('The exported file created at {}'.format(zip_file_path))
     shutil.rmtree(directory)
     return zip_file_path
@@ -827,7 +828,7 @@ def get_manually_labeled_frame_ids(video):
     return sorted(list(frame_ids))
 
 def get_perceptual_hash_different_frame_ids(video,
-                                            min_hash_difference_between_key_frames=5):
+                                            min_hash_difference_between_key_frames=1):
     """Get the ids of frames whose perceptual hash value are quite different."""
     base_frame_hash = None
     frame_ids = []
@@ -869,27 +870,47 @@ def dump_pascal(video_id, target_folder):
     export_video_pascal(target_folder, video, data)
     return zip_and_remove_directory(target_folder)
 
-def dump_pascal_multiple_videos(video_ids, target_folder):
+def dump_pascal_multiple_videos(video_ids, target_folder, restricted_to_labels=None):
     create_or_clear_directory(target_folder)
     create_pascal_directory_structure(target_folder)
 
     for video_id in video_ids:
         video, data = getdata(video_id)
         print "Dumping video {0}".format(video.slug)
-        export_video_pascal(target_folder, video, data)
+        export_video_pascal(target_folder, video, data,
+                            restricted_to_labels=restricted_to_labels)
     return zip_and_remove_directory(target_folder)
 
-def export_video_pascal(folder, video, data, difficultthresh=0, key_frame_only=True, eval_percent=0.1):
+def export_video_pascal(folder, video, data, restricted_to_labels=None,
+                        difficultthresh=0, key_frame_only=True, eval_percent=0.1):
     get_strframe = lambda frame: "{}_{}_{}".format(video.id, video.slug, str(frame+1).zfill(10))
 
     # find the frame ids to export
     frames_to_export = range(0, video.totalframes)
+
     # filter by key frames
     if key_frame_only:
         frames_to_export = get_key_frame_ids(video)
-    # filter by annotation. The frames to be exported need to have annotations
+
+    # filter by label names. Export all labels unless user specify a subset
+    label_names_in_video = [label_obj['name'] for label_obj in
+                            db_helper.get_labels_of_video(video.id)]
+    # if users didn't specify a subset of labels, then use
+    # all the labels from the video
+    if restricted_to_labels is None:
+        restricted_to_labels = label_names_in_video
+    label_names_to_export = set(label_names_in_video) & set(restricted_to_labels)
+    labels_to_export = {
+        label_name: set() for label_name in label_names_to_export
+    }
+
+    # filter by annotation. The frames to be exported need to have annotations for
+    # labels to be exported
     annotation_by_frame = {}
     for track in data:
+        if track.label not in labels_to_export:
+            print "skipping {}".format(track.label)
+            continue
         for box in track.boxes:
             if box.frame in frames_to_export:
                 if box.frame not in annotation_by_frame:
@@ -897,7 +918,6 @@ def export_video_pascal(folder, video, data, difficultthresh=0, key_frame_only=T
                 annotation_by_frame[box.frame].append((box, track))
     frames_to_export = sorted(annotation_by_frame.keys())
 
-    hasit = {}
 
     logger.debug(
         "Export in pascal format: writing annotations from video {} to {}".format(video, folder))
@@ -917,11 +937,7 @@ def export_video_pascal(folder, video, data, difficultthresh=0, key_frame_only=T
                 continue
 
             isempty = False
-
-            if track.label not in hasit:
-                hasit[track.label] = set()
-            hasit[track.label].add(frame)
-
+            labels_to_export[track.label].add(frame)
             difficult = box.area < difficultthresh
             difficult = int(difficult)
 
@@ -960,7 +976,7 @@ def export_video_pascal(folder, video, data, difficultthresh=0, key_frame_only=T
     logger.debug("{0} of {1} frames are exported".format(len(frames_to_export), video.totalframes))
 
     logger.debug("Writing image sets...")
-    for label, frames in hasit.items():
+    for label, frames in labels_to_export.items():
         filename = "{0}/ImageSets/Main/{1}_trainval.txt".format(folder,
                                                                 label)
         f = open(filename, "a")

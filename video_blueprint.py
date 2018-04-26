@@ -213,6 +213,24 @@ def export_all_pascal():
     logger.debug('get %s videos for user %s ' % (str(len(video_infos)), str(current_user.id)))
     video_ids = [video_info['id'] for video_info in video_infos]
     target_folder = os.path.join('/tmp', '{}_{}'.format('export', str(random.getrandbits(32))))
+    restricted_to_labels = ['tray', 'lever', 'cap', 'dangle', 'assembled', 'clamped']
+    output_file_path = turkic_replacement.dump_pascal_multiple_videos(video_ids, target_folder, restricted_to_labels=restricted_to_labels)
+
+    if os.path.exists(output_file_path) and os.path.isfile(output_file_path):
+        return send_file(output_file_path, as_attachment=True, attachment_filename='export_{}.zip'.format(os.path.splitext(current_user.username)[0]))
+    else:
+        return json.dump('Something went wrong when exporting labels.')
+
+# added backdoor for dumping some videos
+@video_page.route("/export_some", methods=["GET"])
+@login_required
+def export_some():
+    video_keywords = ["all"]
+    video_infos = db_helper.get_videos_of_user(current_user.id)
+    video_ids = [video_info['id'] for video_info in video_infos if
+                 any([video_keyword in video_info['name'] for video_keyword in video_keywords])]
+    logger.debug('exporting video_ids: {}'.format(video_ids))
+    target_folder = os.path.join('/tmp', '{}_{}'.format('export', str(random.getrandbits(32))))
     output_file_path = turkic_replacement.dump_pascal_multiple_videos(video_ids, target_folder)
 
     if os.path.exists(output_file_path) and os.path.isfile(output_file_path):
