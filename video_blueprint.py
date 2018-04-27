@@ -180,7 +180,7 @@ def export():
             flash('No such video found.', 'danger')
             return redirect(request.referrer)
         target_folder = os.path.join('/tmp', '{}_{}'.format('export', str(random.getrandbits(32))))
-        output_file_path = turkic_replacement.dump_pascal(video_id, target_folder)
+        output_file_path = turkic_replacement.export_videos_pascal([video_id], target_folder)
         if os.path.exists(output_file_path) and os.path.isfile(output_file_path):
             return send_file(output_file_path, as_attachment=True, attachment_filename='export_{}.zip'.format(os.path.splitext(video.slug)[0]))
         else:
@@ -205,6 +205,11 @@ def export_all_text():
         turkic_replacement.dump_text(video_id, target_folder)
     return json.dump('success')
 
+# TODO: tmp trial. Need to remove from commit
+RESTRICTED_TO_LABELS = ['tray', 'lever', 'cap', 'dangle', 'assembled', 'clamped']
+VIDEO_KEYWORDS = ["all_006"]
+KEY_FRAME_ONLY = False
+
 # added backdoor for dumping all videos in pascal
 @video_page.route("/export_pascal", methods=["GET"])
 @login_required
@@ -213,8 +218,9 @@ def export_all_pascal():
     logger.debug('get %s videos for user %s ' % (str(len(video_infos)), str(current_user.id)))
     video_ids = [video_info['id'] for video_info in video_infos]
     target_folder = os.path.join('/tmp', '{}_{}'.format('export', str(random.getrandbits(32))))
-    restricted_to_labels = ['tray', 'lever', 'cap', 'dangle', 'assembled', 'clamped']
-    output_file_path = turkic_replacement.dump_pascal_multiple_videos(video_ids, target_folder, restricted_to_labels=restricted_to_labels)
+    output_file_path = turkic_replacement.export_videos_pascal(video_ids,
+                                                               target_folder, restricted_to_labels=RESTRICTED_TO_LABELS,
+                                                               key_frame_only=KEY_FRAME_ONLY)
 
     if os.path.exists(output_file_path) and os.path.isfile(output_file_path):
         return send_file(output_file_path, as_attachment=True, attachment_filename='export_{}.zip'.format(os.path.splitext(current_user.username)[0]))
@@ -225,13 +231,15 @@ def export_all_pascal():
 @video_page.route("/export_some", methods=["GET"])
 @login_required
 def export_some():
-    video_keywords = ["all"]
     video_infos = db_helper.get_videos_of_user(current_user.id)
     video_ids = [video_info['id'] for video_info in video_infos if
-                 any([video_keyword in video_info['name'] for video_keyword in video_keywords])]
+                 any([video_keyword in video_info['name'] for video_keyword in VIDEO_KEYWORDS])]
     logger.debug('exporting video_ids: {}'.format(video_ids))
     target_folder = os.path.join('/tmp', '{}_{}'.format('export', str(random.getrandbits(32))))
-    output_file_path = turkic_replacement.dump_pascal_multiple_videos(video_ids, target_folder)
+    output_file_path = turkic_replacement.export_videos_pascal(video_ids,
+                                                               target_folder,
+                                                               restricted_to_labels=RESTRICTED_TO_LABELS,
+                                                               key_frame_only=KEY_FRAME_ONLY)
 
     if os.path.exists(output_file_path) and os.path.isfile(output_file_path):
         return send_file(output_file_path, as_attachment=True, attachment_filename='export_{}.zip'.format(os.path.splitext(current_user.username)[0]))

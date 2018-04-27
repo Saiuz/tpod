@@ -860,30 +860,40 @@ def get_key_frame_ids(video):
             len(perceptual_hash_different_frame_ids)))
     return sorted(list(key_frame_ids))
 
+def filter_data_by_labels(data, restricted_to_labels):
+    """Only include tracks whose label is in restricted_to_labels."""
+    assert(isinstance(data, list))
+    assert(isinstance(restricted_to_labels, list))
+    filtered_data = []
+    for track in data:
+        if track.label not in restricted_to_labels:
+            continue
+        filtered_data.append(track)
+    return filtered_data
 
-def dump_pascal(video_id, target_folder):
-    create_or_clear_directory(target_folder)
-    create_pascal_directory_structure(target_folder)
-
-    video, data = getdata(video_id)
-    print "Dumping video {0}".format(video.slug)
-    export_video_pascal(target_folder, video, data)
-    return zip_and_remove_directory(target_folder)
-
-def dump_pascal_multiple_videos(video_ids, target_folder, restricted_to_labels=None):
+def export_videos_pascal(video_ids, target_folder, restricted_to_labels=None,
+                         difficultthresh=0, key_frame_only=True,
+                         eval_percent=0.1):
     create_or_clear_directory(target_folder)
     create_pascal_directory_structure(target_folder)
 
     for video_id in video_ids:
         video, data = getdata(video_id)
         print "Dumping video {0}".format(video.slug)
-        export_video_pascal(target_folder, video, data,
-                            restricted_to_labels=restricted_to_labels)
+        export_video_to_dir_pascal(target_folder, video, data,
+                            restricted_to_labels=restricted_to_labels,
+                            difficultthresh=difficultthresh,
+                            key_frame_only=key_frame_only,
+                            eval_percent=eval_percent)
     return zip_and_remove_directory(target_folder)
 
-def export_video_pascal(folder, video, data, restricted_to_labels=None,
-                        difficultthresh=0, key_frame_only=True, eval_percent=0.1):
+def export_video_to_dir_pascal(output_dir, video, data, restricted_to_labels,
+                        difficultthresh, key_frame_only,
+                        eval_percent):
     get_strframe = lambda frame: "{}_{}_{}".format(video.id, video.slug, str(frame+1).zfill(10))
+
+    if restricted_to_labels is not None:
+        data = filter_data_by_labels(data, restricted_to_labels)
 
     # find the frame ids to export
     frames_to_export = range(0, video.totalframes)
@@ -908,10 +918,9 @@ def export_video_pascal(folder, video, data, restricted_to_labels=None,
     # labels to be exported
     annotation_by_frame = {}
     for track in data:
-        if track.label not in labels_to_export:
-            print "skipping {}".format(track.label)
-            continue
         for box in track.boxes:
+            if box.lost:
+                continue
             if box.frame in frames_to_export:
                 if box.frame not in annotation_by_frame:
                     annotation_by_frame[box.frame] = []
@@ -920,12 +929,12 @@ def export_video_pascal(folder, video, data, restricted_to_labels=None,
 
 
     logger.debug(
-        "Export in pascal format: writing annotations from video {} to {}".format(video, folder))
+        "Export in pascal format: writing annotations from video {} to {}".format(video, output_dir))
 
     for frame in frames_to_export:
         boxes = annotation_by_frame[frame]
         strframe = get_strframe(frame)
-        filename = "{}/Annotations/{}.xml".format(folder, strframe)
+        filename = "{}/Annotations/{}.xml".format(output_dir, strframe)
         f = open(filename, "w")
         f.write("<annotation>")
         f.write("<folder>JPEGImages</folder>")
@@ -977,7 +986,7 @@ def export_video_pascal(folder, video, data, restricted_to_labels=None,
 
     logger.debug("Writing image sets...")
     for label, frames in labels_to_export.items():
-        filename = "{0}/ImageSets/Main/{1}_trainval.txt".format(folder,
+        filename = "{0}/ImageSets/Main/{1}_trainval.txt".format(output_dir,
                                                                 label)
         f = open(filename, "a")
         for frame in frames_to_export:
@@ -990,7 +999,7 @@ def export_video_pascal(folder, video, data, restricted_to_labels=None,
             f.write("\n")
 
         f.close()
-        train = "{0}/ImageSets/Main/{1}_train.txt".format(folder, label)
+        train = "{0}/ImageSets/Main/{1}_train.txt".format(output_dir, label)
         shutil.copyfile(filename, train)
 
     def append_frame_path_to_file(filepath, frame_list, get_strframe_method=get_strframe):
@@ -1000,15 +1009,15 @@ def export_video_pascal(folder, video, data, restricted_to_labels=None,
         f.write("\n".join(get_strframe(frame) for frame in frame_list))
         f.close()
 
-    filename = "{0}/ImageSets/Main/trainval.txt".format(folder)
+    filename = "{0}/ImageSets/Main/trainval.txt".format(output_dir)
     append_frame_path_to_file(filename, frames_to_export)
 
-    filename = "{0}/ImageSets/Main/val.txt".format(folder)
+    filename = "{0}/ImageSets/Main/val.txt".format(output_dir)
     eval_frames_to_export = sorted(random.sample(
         frames_to_export, int(len(frames_to_export) * eval_percent)))
     append_frame_path_to_file(filename, eval_frames_to_export)
 
-    filename = "{0}/ImageSets/Main/train.txt".format(folder)
+    filename = "{0}/ImageSets/Main/train.txt".format(output_dir)
     train_frames_to_export = sorted(list(set(frames_to_export) - set(eval_frames_to_export)))
     append_frame_path_to_file(filename, train_frames_to_export)
 
@@ -1016,7 +1025,7 @@ def export_video_pascal(folder, video, data, restricted_to_labels=None,
     for frame in frames_to_export:
         strframe = get_strframe(frame)
         path = Video.getframepath(frame, video.extract_path)
-        dest = "{0}/JPEGImages/{1}.jpg".format(folder, strframe)
+        dest = "{0}/JPEGImages/{1}.jpg".format(output_dir, strframe)
         shutil.copyfile(path, dest)
 
     logger.debug("Done.")
