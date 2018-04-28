@@ -37,6 +37,8 @@ def index():
 @login_required
 def list_video():
     videos = db_helper.get_videos_of_user(current_user.id)
+    # sort videos by name
+    videos = sorted(videos, key = lambda x: x['name'])
     print 'get %s videos for user %s ' % (str(len(videos)), str(current_user.id))
     return render_template('index_video.html', videos = videos)
 
