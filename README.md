@@ -1,4 +1,5 @@
 # TPOD (A Tool for Painless Object Detection)
+This is still a work in progress. No release yet.
 -----------------
 
 TPOD, a tool for painless object detection, is a web-based system that simplifies and streamlines the process of creating DNN-based highly accurate object detectors. It helps application developers with no prior computer vision background to quickly collect training images, label them, and train object detector. 
