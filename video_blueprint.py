@@ -155,7 +155,8 @@ def add_labeled_zip(video_name, zip_file_path):
     return True
 
 
-def export_zip(video_name, target_folder): 
+def export_zip(video_name, target_folder):
+    """seems to be not used anymore."""
     if not os.path.exists(target_folder):
         os.makedirs(target_folder)
     else:
@@ -182,7 +183,7 @@ def export():
             flash('No such video found.', 'danger')
             return redirect(request.referrer)
         target_folder = os.path.join('/tmp', '{}_{}'.format('export', str(random.getrandbits(32))))
-        output_file_path = turkic_replacement.export_videos_pascal([video_id], target_folder)
+        output_file_path = turkic_replacement.export_videos_pascal([video_id], target_folder, key_frame_only=False, annotated_frame_only=False)
         if os.path.exists(output_file_path) and os.path.isfile(output_file_path):
             return send_file(output_file_path, as_attachment=True, attachment_filename='export_{}.zip'.format(os.path.splitext(video.slug)[0]))
         else:
@@ -208,9 +209,9 @@ def export_all_text():
     return json.dump('success')
 
 # TODO: tmp trial. Need to remove from commit
-RESTRICTED_TO_LABELS = ['tray', 'lever', 'cap', 'dangle', 'assembled', 'clamped']
-VIDEO_KEYWORDS = ["all_006"]
-KEY_FRAME_ONLY = False
+RESTRICTED_TO_LABELS = ['tray', 'lever', 'cap', 'leverside']
+VIDEO_KEYWORDS = ["all_", "cap_", "dangling_", "lever_", "leverside_"]
+KEY_FRAME_ONLY = True
 
 # added backdoor for dumping all videos in pascal
 @video_page.route("/export_pascal", methods=["GET"])

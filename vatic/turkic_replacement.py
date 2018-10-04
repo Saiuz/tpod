@@ -2,6 +2,7 @@ import time
 import random
 import math
 import zipfile
+from collections import defaultdict
 
 import cv2
 import imagehash
@@ -873,6 +874,7 @@ def filter_data_by_labels(data, restricted_to_labels):
 
 def export_videos_pascal(video_ids, target_folder, restricted_to_labels=None,
                          difficultthresh=0, key_frame_only=True,
+                         annotated_frame_only=True,
                          eval_percent=0.1):
     create_or_clear_directory(target_folder)
     create_pascal_directory_structure(target_folder)
@@ -884,12 +886,24 @@ def export_videos_pascal(video_ids, target_folder, restricted_to_labels=None,
                             restricted_to_labels=restricted_to_labels,
                             difficultthresh=difficultthresh,
                             key_frame_only=key_frame_only,
+                            annotated_frame_only=annotated_frame_only,
                             eval_percent=eval_percent)
     return zip_and_remove_directory(target_folder)
 
 def export_video_to_dir_pascal(output_dir, video, data, restricted_to_labels,
-                        difficultthresh, key_frame_only,
+                        difficultthresh, key_frame_only, annotated_frame_only,
                         eval_percent):
+    """Export video in pascal format to a directory.
+    restricted_to_labels: a list of labels that need to be exported. If None, then, export all labels.
+    difficultthresh: a threshold for determing is an image is 'difficult'. If the annotation box area is smaller
+                     than the threshold, then it is difficult.
+    key_frame_only: whether to only export frames that are significantly different from previous frames in a video.
+                    The similarity of frames are determined by pixel-level perceptual hashing.
+    annotated_frame_only: whether to export only frames with annotations. key_frame_only is evaluated first. If 
+                          both key_frame_only and this arugment are set to be true, 
+                          only annotated key frames are included.
+    eval_percent: percentage of frames to include as evaluation set.
+    """
     get_strframe = lambda frame: "{}_{}_{}".format(video.id, video.slug, str(frame+1).zfill(10))
 
     if restricted_to_labels is not None:
@@ -914,19 +928,20 @@ def export_video_to_dir_pascal(output_dir, video, data, restricted_to_labels,
         label_name: set() for label_name in label_names_to_export
     }
 
-    # filter by annotation. The frames to be exported need to have annotations for
-    # labels to be exported
-    annotation_by_frame = {}
+    annotation_by_frame = defaultdict(list)
+    frames_with_annotation = []
     for track in data:
         for box in track.boxes:
             if box.lost:
                 continue
             if box.frame in frames_to_export:
-                if box.frame not in annotation_by_frame:
-                    annotation_by_frame[box.frame] = []
                 annotation_by_frame[box.frame].append((box, track))
-    frames_to_export = sorted(annotation_by_frame.keys())
+                frames_with_annotation.append(box.frame)
 
+    # filter by annotation. The frames to be exported need to have annotations for
+    # labels to be exported
+    if annotated_frame_only:
+	frames_to_export = sorted(list(set(frames_with_annotation)))
 
     logger.debug(
         "Export in pascal format: writing annotations from video {} to {}".format(video, output_dir))
