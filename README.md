@@ -1,4 +1,5 @@
 # TPOD (A Tool for Painless Object Detection)
+This is still a work in progress. No release yet.
 -----------------
 
 TPOD, a tool for painless object detection, is a web-based system that simplifies and streamlines the process of creating DNN-based highly accurate object detectors. It helps application developers with no prior computer vision background to quickly collect training images, label them, and train object detector. 
@@ -110,7 +111,11 @@ Then the label for that frame looks like this
 2. (Under the tpod root folder) python app.py db migrate 
 3. (Under the tpod root folder) python app.py db upgrade
 
+# Licensing
+Unless otherwise stated, the source code are copyright Carnegie Mellon University and licensed under the [Apache 2.0 License](./LICENSE).
+Portions from the following third party sources have been modified and are included in this repository.
+These portions are noted in the source files and are copyright their respective authors with the licenses listed.
 
-
-
-
+Project | Modified | License
+---|---|---|
+[cvondrick/vatic](https://github.com/cvondrick/vatic) | Yes | MIT
